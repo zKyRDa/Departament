@@ -144,7 +144,7 @@ imgui.OnFrame(function() return show[0] and not isPauseMenuActive() and not samp
             imgui.SameLine()
             if imgui.RadioButtonIntPtr(styles[i].name, radiobuttonStyle, i) then
                 radiobuttonStyle[0] = i
-                styles[i].func()
+                styles[i].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1))
             end
         end
         if radiobuttonStyle[0] == 1 then
@@ -452,7 +452,7 @@ function DetermineFractionColor()
     local b = bit.band(rgbCode, 0xFF)
 
     if r + g + b < 757 and r + g + b ~= 292 then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при сн€тии маски = 255, 255, 255), 292 = grey
-        Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b = r / 255, g / 255, b / 255
+        Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b = r, g, b
         inicfg.save(Ini.FractionColor, "DepChannels")
         styles[0].func(imgui.ImVec4(r, g, b, 1))
     end
@@ -476,16 +476,15 @@ styles = {
         name = u8'—тандартна€ тема',
         func = function(StyleColor)
             imgui.SwitchContext()
-            StyleColor = StyleColor or imgui.ImVec4(0.52, 0.07, 0.04, 1)
-            sampAddChatMessage(StyleColor.x..' '..StyleColor.y..' '..StyleColor.z, -1)
             local colors = imgui.GetStyle().Colors
             local clr = imgui.Col
+            
             colors[clr.WindowBg] =          imgui.ImVec4(0.043, 0.039, 0.039, 0.941)
             colors[clr.PopupBg] =           imgui.ImVec4(0.043, 0.039, 0.039, 1)
             colors[clr.ChildBg] =           imgui.ImVec4(0.043, 0.039, 0.039, 0.3)
             colors[clr.Border] =            imgui.ImVec4(0.5, 0.5, 0.5, 0.4)
             colors[clr.Separator] =         imgui.ImVec4(0.5, 0.5, 0.5, 0.7)
-            
+
             colors[clr.TitleBgActive] =     imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.8)
             colors[clr.TitleBg] =           imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.8)
             colors[clr.FrameBg] =           imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.078)
