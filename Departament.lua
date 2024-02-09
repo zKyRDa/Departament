@@ -274,6 +274,7 @@ imgui.OnFrame(function() return show[0] and not isPauseMenuActive() and not samp
     end
     imgui.End()
 end)
+
 imgui.OnFrame(function() return WinState[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function(self) -- главное меню
     if isKeyDown(32) and self.HideCursor == false then -- скрыть курсор если нажат пробел
         self.HideCursor = true
@@ -428,30 +429,32 @@ end
 function main()
     while not isSampAvailable() do wait(0) end
     sampRegisterChatCommand(Ini.Settings.Command, function()
-        if radiobuttonStyle[0] == 0 then
-            function explode_argb(argb)
-                local a = bit.band(bit.rshift(argb, 24), 0xFF)
-                local r = bit.band(bit.rshift(argb, 16), 0xFF)
-                local g = bit.band(bit.rshift(argb, 8), 0xFF)
-                local b = bit.band(argb, 0xFF)
-                return a, r, g, b
-            end
-
-            local a, r, g, b = explode_argb(sampGetPlayerColor(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))))
-            if r + g + b >= 756 and r + g + b ~= 292 then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при сн€тии маски = 255, 255, 255), 292 = grey
-                styles[0].func(imgui.ImVec4(r, g, b, a))
-            end
-            
-        end
+        if radiobuttonStyle[0] == 0 then DetermineFractionColor() end
         WinState[0] = not WinState[0]
     end)
-    sampRegisterChatCommand('depset', function() show[0] = not show[0] end)
+    sampRegisterChatCommand('depset', function()
+        if radiobuttonStyle[0] == 0 then DetermineFractionColor() end
+        show[0] = not show[0]
+    end)
 
     myname = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) -- получени€ имени твоего персонажа
 
     if Ini.Settings.Notification then
         wait(50)
         sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} —крипт загружен.  оманда: /"..Ini.Settings.Command.." /depset. јвтор: KyRDa", -1)
+    end
+end
+
+function DetermineFractionColor()
+    local rgbCode = sampGetPlayerColor(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED)))
+    local r = bit.band(bit.rshift(rgbCode, 16), 0xFF)
+    local g = bit.band(bit.rshift(rgbCode, 8), 0xFF)
+    local b = bit.band(rgbCode, 0xFF)
+
+    if r + g + b < 757 and r + g + b ~= 292 then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при сн€тии маски = 255, 255, 255), 292 = grey
+        Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b = r / 255, g / 255, b / 255
+        inicfg.save(Ini.FractionColor, "DepChannels")
+        styles[0].func(imgui.ImVec4(r, g, b, 1))
     end
 end
 
@@ -466,7 +469,7 @@ function Theme()
     style.ScrollbarSize = 17
     colors[imgui.Col.Header] = imgui.ImVec4(0, 0, 0, 0)
     colors[imgui.Col.CheckMark] = imgui.ImVec4(1, 1, 1, 1)
-    styles[Ini.Settings.Style].func()
+    styles[Ini.Settings.Style].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1))
 end
 styles = {
     [0] = {
@@ -482,7 +485,7 @@ styles = {
             colors[clr.ChildBg] =           imgui.ImVec4(0.043, 0.039, 0.039, 0.3)
             colors[clr.Border] =            imgui.ImVec4(0.5, 0.5, 0.5, 0.4)
             colors[clr.Separator] =         imgui.ImVec4(0.5, 0.5, 0.5, 0.7)
-
+            
             colors[clr.TitleBgActive] =     imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.8)
             colors[clr.TitleBg] =           imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.8)
             colors[clr.FrameBg] =           imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.078)
