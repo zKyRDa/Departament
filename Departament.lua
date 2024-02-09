@@ -56,7 +56,9 @@ local Ini = inicfg.load({
         b = 0.223,
     },
     FractionColor = {
-
+        r = 0.52,
+        g = 0.07,
+        b = 0.04,
     }
 }, "DepChannels")
 inicfg.save(Ini, "DepChannels")
@@ -436,7 +438,7 @@ function main()
             end
 
             local a, r, g, b = explode_argb(sampGetPlayerColor(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))))
-            if r + g + b >= 757 and r + g + b ~= 292 then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при снятии маски = 255, 255, 255), 292 = grey
+            if r + g + b >= 756 and r + g + b ~= 292 then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при снятии маски = 255, 255, 255), 292 = grey
                 styles[0].func(imgui.ImVec4(r, g, b, a))
             end
             
