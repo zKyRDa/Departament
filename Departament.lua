@@ -41,19 +41,19 @@ local Ini = inicfg.load({
         '-'
     },
     CustomStyleBg = {
-        r = 0.196,
-        g = 0.196,
-        b = 0.196,
+        r = 0.043,
+        g = 0.039,
+        b = 0.039,
     },
     CustomStyleButton = {
-        r = 0.796,
-        g = 0.156,
-        b = 0.129,
+        r = 0.52,
+        g = 0.07,
+        b = 0.04,
     },
     CustomStyleElments = {
-        r = 0.223,
-        g = 0.223,
-        b = 0.223,
+        r = 0.09,
+        g = 0.09,
+        b = 0.09,
     },
     FractionColor = {
         r = 0.52,
@@ -402,7 +402,7 @@ function sampev.onSendCommand(text)
             end
             twostr = string.match(string.sub(dtext, #onestr+2, 119), "(.*)") -- начать текст с момента переноса
             if Ini.Settings.Scobs and not Ini.Settings.LineBreakTags then
-                onestr = string.format('/d [%s] %s [%s]: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], onestr)
+                onestr = string.format('/d [%s] %s [%s]: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastS0ymbol], Ini.Channels[Ini.Settings.lastChannel2], onestr)
                 twostr = string.format('/d %s', twostr)
             elseif not Ini.Settings.Scobs then
                 onestr = string.format('/d %s %s %s: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], onestr)
@@ -497,19 +497,6 @@ styles = {
             colors[clr.HeaderActive] =      imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
             colors[clr.SliderGrab] =        imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.5)
             colors[clr.SliderGrabActive] =  imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
-
-            -- colors[clr.TitleBg] =           imgui.ImVec4(0.52, 0.07, 0.04, 1)
-            -- colors[clr.TitleBgActive] =     imgui.ImVec4(0.52, 0.07, 0.04, 1)
-            -- colors[clr.FrameBg] =           imgui.ImVec4(0.5, 0.5, 0.5, 0.078)
-            -- colors[clr.FrameBgHovered] =    imgui.ImVec4(0.282, 0.674, 0.741, 0.431)
-            -- colors[clr.FrameBgActive] =     imgui.ImVec4(0.400, 0.713, 0.741, 0.431)
-            -- colors[clr.Button] =            imgui.ImVec4(0.796, 0.156, 0.129, 0.588)
-            -- colors[clr.ButtonHovered] =     imgui.ImVec4(0.898, 0.360, 0.333, 1)
-            -- colors[clr.ButtonActive] =      imgui.ImVec4(0.898, 0.505, 0.551, 1)
-            -- colors[clr.HeaderHovered] =     imgui.ImVec4(0.517, 0.066, 0.043, 1)
-            -- colors[clr.HeaderActive] =      imgui.ImVec4(0.596, 0.239, 0.223, 1)
-            -- colors[clr.SliderGrab] =        imgui.ImVec4(0.796, 0.156, 0.129, 0.5)
-            -- colors[clr.SliderGrabActive] =  imgui.ImVec4(0.796, 0.156, 0.129, 1)
         end
     },
     [1] = {
