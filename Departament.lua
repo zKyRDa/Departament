@@ -1,8 +1,8 @@
 script_name('Departament')
 script_author('KyRDa')
-script_description('/depset, /dep')
+script_description('/depset')
 script_version('3')
-
+-- gdfdfg
 require 'lib.moonloader'
 local imgui = require 'mimgui'
 local encoding = require 'encoding'
@@ -14,13 +14,12 @@ local sampev = require "lib.samp.events"
 
 local Ini = inicfg.load({
     Settings = {
-        Notification = true,
         Enable = false,
         Scobs = true,
         Chat = false,
         LineBreak = true, -- Перенос строки
-        LineBreakTags = true, -- Перенос строки с добавлением конструкции
         Command = 'dep',
+        Form = '[#] $ [#]:',
         lastChannel1 = 1,
         lastSymbol = 1,
         lastChannel2 = 1,
@@ -79,15 +78,13 @@ end
 local MainMenu, SettingsMenu =  imgui.new.bool(), imgui.new.bool() -- для открытия/закрытия окон
 
 local inputCommand =            imgui.new.char[64](u8:encode(Ini.Settings.Command)) -- изменение команды активации
+local inputform =               imgui.new.char[64](u8:encode(Ini.Settings.Form)) -- форма (конструкция) постановки
 local inputChannels =           imgui.new.char[64]() -- добавить в тег в список
 local inputSymbol =             imgui.new.char[64]() -- добавить в символ в список
 
 local checkboxEnab =            imgui.new.bool(Ini.Settings.Enable) -- включить подмену
-local checkboxNoft =            imgui.new.bool(Ini.Settings.Notification) -- чекбокс включения уведомления
-local checkboxScob =            imgui.new.bool(Ini.Settings.Scobs) -- чекбокс включения скобок между тегов
 local checkboxChat =            imgui.new.bool(Ini.Settings.Chat) -- чекбокс включения кнопки 'Ввести в чат'
 local checkboxline =            imgui.new.bool(Ini.Settings.LineBreak) -- чекбокс включения перенос строки
-local checkboxlinetag =         imgui.new.bool(Ini.Settings.LineBreakTags) -- чекбокс включения перенос строки с добавлением конструкции
 
 local radiobuttonStyle =        imgui.new.int(Ini.Settings.Style) -- выбор стиля
 local selectedChannel =         imgui.new.int(0) -- выбранный элемент таблицы тегов
@@ -109,30 +106,17 @@ local widgetTransparency =      imgui.new.float[1](Ini.Settings.WidgetTransparen
 
 imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function() -- настройки
     imgui.SetNextWindowPos(imgui.ImVec2(Ini.Settings.PosX, Ini.Settings.PosY), imgui.Cond.FirstUseEver, imgui.ImVec2(1, 1))
-    imgui.Begin('Settings', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize)
-    if imgui.BeginChild('SettingTwo', imgui.ImVec2(225, 213), true, imgui.WindowFlags.NoScrollbar) then
-        imgui.Text(u8'Команда активации:')
-        imgui.SameLine()
-        imgui.PushItemWidth(74)
-        imgui.SetCursorPosX(145)
-        imgui.InputText('##inputcommand', inputCommand, 64)
-        imgui.Hind(u8"Введите сюда жалемую команду без '/' для вывода главного меню.")
-        imgui.PopItemWidth()
-        imgui.ToggleButton(u8'Уведомление о загрузке', checkboxNoft)
-        imgui.Hind(u8"При выключении этого параметра, вы больше не будете\nвидеть сообщение о загрузке скрипта и его командах.")
-        imgui.ToggleButton(u8'Кнопка ввода в чат', checkboxChat)
-        imgui.Hind(u8'При включении этого параметра скрипт не будет автоматически подставлять теги под\nсообщения в чат департамента, а в главном меню появится кнопка "Ввести в чат".')
-        imgui.Separator()
-        imgui.ToggleButton(u8'Закрыть теги в скобки', checkboxScob)
-        imgui.Separator()
-        imgui.ToggleButton(u8'Перенос сообщения /d', checkboxline)
-        imgui.Hind(u8"При включении этого параметра все сообщения /d будут обрабатываться.\nКогда вы напишите сообщение, непомещающаеся в одно строку, скрипт перенесёт его.")
-        if checkboxline[0] then
-            imgui.ToggleButton(u8'Конструкция при переносе', checkboxlinetag)
-            imgui.Hind(u8"При включении этого параметра в переносимую строку будет добавляеться конструкция 'Тег' 'текст между' 'Тег'")
+    imgui.Begin('Settings', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize + imgui.WindowFlags.NoTitleBar)
+
+    if imgui.BeginPopupModal('Form') then
+        -- imgui.SetWindowSizeVec2(imgui.ImVec2(290, 190)) -- задаём размер окна
+        imgui.Text('Test')
+        if imgui.Button(u8'Изменить и закрыть', imgui.ImVec2(280, 24)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
+            imgui.CloseCurrentPopup()
         end
-        imgui.EndChild()
+        imgui.EndPopup()
     end
+
     if imgui.BeginPopup('WidgetSettings') then -- Настрока виджета, всплывающее окно при нажатии кнопки "Виджет"
         for i = 0, 1 do
             imgui.SameLine()
@@ -183,6 +167,37 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
             imgui.PopItemWidth()
         end
         imgui.EndPopup()
+    end
+
+    imgui.PushFont(big) imgui.CenterText('Settings') imgui.PopFont()
+    imgui.Separator()
+
+    if imgui.BeginChild('SettingTwo', imgui.ImVec2(225, 213), true, imgui.WindowFlags.NoScrollbar) then
+        imgui.Text(u8'Команда активации:')
+        imgui.SameLine()
+        imgui.PushItemWidth(74)
+        imgui.SetCursorPosX(145)
+        imgui.InputText('##inputcommand', inputCommand, 64)
+        imgui.Hind(u8"Введите сюда жалемую команду без '/' для вывода главного меню.")
+        imgui.PopItemWidth()
+        imgui.ToggleButton(u8'Кнопка ввода в чат', checkboxChat)
+        imgui.Hind(u8'При включении этого параметра скрипт не будет автоматически подставлять теги под\nсообщения в чат департамента, а в главном меню появится кнопка "Ввести в чат".')
+        
+        imgui.Separator()
+        imgui.Text(u8'Форма: '..Ini.Settings.Form)
+        if imgui.Button(u8'Изменить', imgui.ImVec2(280, 24)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
+            imgui.OpenPopup('Form')
+        end
+        if imgui.BeginChild('form_description', imgui.ImVec2(-1, 30), true) then
+            imgui.CenterText(u8'# — тэг | $ — волна')
+            imgui.EndChild()
+        end
+
+        imgui.Separator()
+        imgui.ToggleButton(u8'Перенос сообщения /d', checkboxline)
+        imgui.Hind(u8"При включении этого параметра все сообщения /d будут обрабатываться.\nКогда вы напишите сообщение, непомещающаеся в одно строку, скрипт перенесёт его.")
+        
+        imgui.EndChild()
     end
     imgui.SameLine()
     if imgui.BeginChild('Channels', imgui.ImVec2(194, 178), true) then -- список тегов
@@ -249,8 +264,24 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.OpenPopup('WidgetSettings')
     end
     imgui.SameLine()
-    if imgui.Button(u8'Сохранить', imgui.ImVec2(331, 30)) then -- сохранение
-        Save(2)
+    if imgui.Button(u8'Сохранить и закрыть', imgui.ImVec2(331, 30)) then -- сохранение
+        -- local Symbols = {'#', '$', '#'}
+        -- for symb in Symbols do
+        --     local flag = false
+        --     for el in inputform[0] do
+        --         if el == symb then
+        --             flag = true
+        --             break
+        --         end
+        --     end
+        --     if not flag then
+
+        --         return
+        --     end
+        -- end
+        -- SettingsMenu[0] = false
+        -- Save()
+        imgui.OpenPopup('Form')
     end
     imgui.PopStyleVar()
     imgui.End()
@@ -371,30 +402,25 @@ local str -- последняя отправленная строка в /d
 function sampev.onSendCommand(text)
     if not checkboxChat[0] and checkboxEnab[0] and text:find('^/d%s+.+%s*') and str ~= text and onestr ~= text and twostr ~= text then
         local dtext = text:match('^/d%s+(.+)%s*')
-        if Ini.Settings.Scobs then
-            str = string.format('/d [%s] %s [%s]: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], dtext)
-        else -- без /d для получения количество итогово отправляемого текста в переносе
-            str = string.format('/d %s %s %s: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], dtext)
-        end
+        str = string.format('/d '..Ini.Settings.Form, Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], dtext)
+
         if #str:sub(3) > Ini.Settings.MaxText and Ini.Settings.LineBreak then -- перенос строки
             onestr = string.match(dtext:sub(1, Ini.Settings.MaxText), "(.*) (.*)") -- первый (.*) - текст в первой строчке, второй - остаток текста 
+            
             if onestr == nil then
                 return sampAddChatMessage('{cb2821}[Departament]:{FFFFFF} Перенос строки принимает только текст с пробелами. Выключить эту функцию можно в /depset', -1)
             end
+
             twostr = string.match(string.sub(dtext, #onestr+2, 119), "(.*)") -- начать текст с момента переноса
-            if Ini.Settings.Scobs and not Ini.Settings.LineBreakTags then
-                onestr = string.format('/d [%s] %s [%s]: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastS0ymbol], Ini.Channels[Ini.Settings.lastChannel2], onestr)
-                twostr = string.format('/d %s', twostr)
-            elseif not Ini.Settings.Scobs then
-                onestr = string.format('/d %s %s %s: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], onestr)
-                twostr = string.format('/d %s', twostr)
-            elseif Ini.Settings.LineBreakTags then
+
+            if Ini.Settings.Scobs then
                 onestr = string.format('/d [%s] %s [%s]: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], onestr)
                 twostr = string.format('/d [%s] %s [%s]: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], twostr)
-            elseif not Ini.Settings.Scobs and Ini.Settings.LineBreakTags then
+            else
                 onestr = string.format('/d %s %s %s: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], onestr)
                 twostr = string.format('/d %s %s %s: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], twostr)
             end
+
             lua_thread.create(function()
                 sampSendChat(onestr)
                 wait(2000)
@@ -403,6 +429,7 @@ function sampev.onSendCommand(text)
         else
             sampSendChat(str)
         end
+
         return false
     end
 end
@@ -415,15 +442,12 @@ function main()
     end)
     sampRegisterChatCommand('depset', function()
         if radiobuttonStyle[0] == 0 then DetermineFractionColor() end
-        SettingsMenu[0] = not SettingsMenu[0]
+        SettingsMenu[0] = true
     end)
 
     myname = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) -- получения имени твоего персонажа
 
-    if Ini.Settings.Notification then
-        wait(50)
-        sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Скрипт загружен. Команда: /"..Ini.Settings.Command.." /depset. Автор: KyRDa", -1)
-    end
+    sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Скрипт загружен. Команда: /"..Ini.Settings.Command.." /depset. Автор: KyRDa", -1)
 end
 
 function DetermineFractionColor()
@@ -516,7 +540,9 @@ imgui.OnInitialize(function()
         inicfg.save(Ini, "DepChannels")
     end
     WidgetPosX, WidgetPosY = Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY -- перемещение переменных в оперативную память
-    font_alert = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 50, nil, imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
+    glyph_ranges = imgui.GetIO().Fonts:GetGlyphRangesCyrillic()
+    font_alert = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 50, nil, glyph_ranges)
+    big = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 18.0, nil, glyph_ranges)
     Theme()
 end)
 -- Выравнивание текста
@@ -537,10 +563,7 @@ function Save(param)
     Ini.Settings.Style = radiobuttonStyle[0]
     Ini.Settings.Command = u8:decode(ffi.string(inputCommand))
     Ini.Settings.Chat = checkboxChat[0] and true or false
-    Ini.Settings.Notification = checkboxNoft[0] and true or false
-    Ini.Settings.Scobs = checkboxScob[0] and true or false
     Ini.Settings.LineBreak = checkboxline[0] and true or false
-    Ini.Settings.LineBreakTags = checkboxlinetag[0] and true or false
     Ini.Settings.Widget = checkboxWidg[0] and true or false
     Ini.Settings.WidgetOff = checkboxWidgNotOff[0] and true or false
     Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY = WidgetPosX, WidgetPosY
