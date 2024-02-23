@@ -18,7 +18,6 @@ local Ini = inicfg.load({
         Enable = false,
         Scobs = true,
         Chat = false,
-        SymbolSelection = false,
         LineBreak = true, -- Перенос строки
         LineBreakTags = true, -- Перенос строки с добавлением конструкции
         Command = 'dep',
@@ -87,7 +86,6 @@ local checkboxEnab =            imgui.new.bool(Ini.Settings.Enable) -- включить 
 local checkboxNoft =            imgui.new.bool(Ini.Settings.Notification) -- чекбокс включения уведомления
 local checkboxScob =            imgui.new.bool(Ini.Settings.Scobs) -- чекбокс включения скобок между тегов
 local checkboxChat =            imgui.new.bool(Ini.Settings.Chat) -- чекбокс включения кнопки 'Ввести в чат'
-local checkboxSymb =            imgui.new.bool(Ini.Settings.SymbolSelection) -- чекбокс включения таблицы текста между тегов
 local checkboxline =            imgui.new.bool(Ini.Settings.LineBreak) -- чекбокс включения перенос строки
 local checkboxlinetag =         imgui.new.bool(Ini.Settings.LineBreakTags) -- чекбокс включения перенос строки с добавлением конструкции
 
@@ -214,60 +212,47 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.Hind(u8'Нажмите для удаления.')
         imgui.PopItemWidth()
         imgui.EndChild()
-        imgui.SetCursorPos(imgui.ImVec2(240, 212))
-        if not checkboxSymb[0] then
-            imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(5, 7))
-            if imgui.Button(u8'Прочее', imgui.ImVec2(60, 30)) then
-                imgui.OpenPopup('WidgetSettings')
-            end
-            imgui.SameLine()
-            if imgui.Button(u8'Сохранить', imgui.ImVec2(129, 30)) then -- сохранение
-                Save(1)
-            end
-            imgui.PopStyleVar()
-        end
+        -- imgui.SetCursorPos(imgui.ImVec2(240, 212))
     end
-    if checkboxSymb[0] then -- если чекбокс выбора текста между тегами = true то
-        imgui.SameLine()
-        if imgui.BeginChild('Symbol', imgui.ImVec2(194, 178), true) then
-            imgui.PushItemWidth(107)
-            imgui.InputTextWithHint('', u8'Текст между', inputSymbol, 64)
-            imgui.PopItemWidth()
-            imgui.SameLine()
-            if imgui.Button(u8'Добавить') then -- добавить новый тег
-                local v
-                for _, value in ipairs(tableu8Symb) do -- защита от повтора тегов
-                    if value == ffi.string(inputSymbol) then
-                        sampAddChatMessage('{cb2821}[Departament]:{FFFFFF} Элемент в списке с таким названием уже существует!', -1)
-                        v = value
-                        break
-                    end
-                end
-                if v ~= ffi.string(inputSymbol) then
-                    table.insert(tableu8Symb, ffi.string(inputSymbol))
-                    ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
-                end
-            end
-        end
-        imgui.PushItemWidth(179)
-        if imgui.ListBoxStr_arr('##list', selectedSymbol, ImItemsSymb, #tableu8Symb) then -- listbox
-            table.remove(tableu8Symb, selectedSymbol[0] + 1)
-            ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
-        end
-        imgui.Hind(u8'Нажмите для удаления.')
+    imgui.SameLine()
+    if imgui.BeginChild('Symbol', imgui.ImVec2(194, 178), true) then
+        imgui.PushItemWidth(107)
+        imgui.InputTextWithHint('', u8'Текст между', inputSymbol, 64)
         imgui.PopItemWidth()
-        imgui.EndChild()
-        imgui.SetCursorPos(imgui.ImVec2(240, 212))
-        imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(5, 7))
-        if imgui.Button(u8'Прочее', imgui.ImVec2(60, 30)) then
-            imgui.OpenPopup('WidgetSettings')
-        end
         imgui.SameLine()
-        if imgui.Button(u8'Сохранить', imgui.ImVec2(331, 30)) then -- сохранение
-            Save(2)
+        if imgui.Button(u8'Добавить') then -- добавить новый тег
+            local v
+            for _, value in ipairs(tableu8Symb) do -- защита от повтора тегов
+                if value == ffi.string(inputSymbol) then
+                    sampAddChatMessage('{cb2821}[Departament]:{FFFFFF} Элемент в списке с таким названием уже существует!', -1)
+                    v = value
+                    break
+                end
+            end
+            if v ~= ffi.string(inputSymbol) then
+                table.insert(tableu8Symb, ffi.string(inputSymbol))
+                ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
+            end
         end
-        imgui.PopStyleVar()
     end
+    imgui.PushItemWidth(179)
+    if imgui.ListBoxStr_arr('##list', selectedSymbol, ImItemsSymb, #tableu8Symb) then -- listbox
+        table.remove(tableu8Symb, selectedSymbol[0] + 1)
+        ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
+    end
+    imgui.Hind(u8'Нажмите для удаления.')
+    imgui.PopItemWidth()
+    imgui.EndChild()
+    imgui.SetCursorPos(imgui.ImVec2(240, 212))
+    imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(5, 7))
+    if imgui.Button(u8'Прочее', imgui.ImVec2(60, 30)) then
+        imgui.OpenPopup('WidgetSettings')
+    end
+    imgui.SameLine()
+    if imgui.Button(u8'Сохранить', imgui.ImVec2(331, 30)) then -- сохранение
+        Save(2)
+    end
+    imgui.PopStyleVar()
     imgui.End()
 end)
 
@@ -291,17 +276,17 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
         Ini.Settings.PosX, Ini.Settings.PosY = pos.x, pos.y -- сохранение позиции
         inicfg.save(Ini, "DepChannels")
     end
-    if checkboxSymb[0] then -- если выбор текста между включен то добавить возможность его выбора
-        imgui.Text(u8'Текст между:')
-        imgui.SameLine()
-        imgui.SetCursorPosX(100)
-        if imgui.Combo('##symbolcombo', selectedComboSymbol, ImItemsIniSymb, #tableu8ComboSymb, imgui.ComboFlags.HeightLargest) then
-            Ini.Settings.lastSymbol = selectedComboSymbol[0] + 1
-            local pos = imgui.GetWindowPos()
-            Ini.Settings.PosX, Ini.Settings.PosY = pos.x, pos.y
-            inicfg.save(Ini, "DepChannels")
-        end
+
+    imgui.Text(u8'Текст между:')
+    imgui.SameLine()
+    imgui.SetCursorPosX(100)
+    if imgui.Combo('##symbolcombo', selectedComboSymbol, ImItemsIniSymb, #tableu8ComboSymb, imgui.ComboFlags.HeightLargest) then
+        Ini.Settings.lastSymbol = selectedComboSymbol[0] + 1
+        local pos = imgui.GetWindowPos()
+        Ini.Settings.PosX, Ini.Settings.PosY = pos.x, pos.y
+        inicfg.save(Ini, "DepChannels")
     end
+
     imgui.Text(u8'Второй тег:')
     imgui.SameLine()
     imgui.SetCursorPosX(100)
@@ -554,7 +539,6 @@ function Save(param)
     Ini.Settings.Chat = checkboxChat[0] and true or false
     Ini.Settings.Notification = checkboxNoft[0] and true or false
     Ini.Settings.Scobs = checkboxScob[0] and true or false
-    Ini.Settings.SymbolSelection = checkboxSymb[0] and true or false
     Ini.Settings.LineBreak = checkboxline[0] and true or false
     Ini.Settings.LineBreakTags = checkboxlinetag[0] and true or false
     Ini.Settings.Widget = checkboxWidg[0] and true or false
