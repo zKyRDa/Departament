@@ -1,8 +1,9 @@
 script_name('Departament')
 script_author('KyRDa')
-script_description('/depset')
-script_version('2')
-require'lib.moonloader'
+script_description('/depset, /dep')
+script_version('3')
+
+require 'lib.moonloader'
 local imgui = require 'mimgui'
 local encoding = require 'encoding'
 encoding.default = 'CP1251'
@@ -10,6 +11,7 @@ local u8 = encoding.UTF8
 local inicfg = require "inicfg"
 local ffi = require "ffi"
 local sampev = require "lib.samp.events"
+
 local Ini = inicfg.load({
     Settings = {
         Notification = true,
@@ -32,7 +34,6 @@ local Ini = inicfg.load({
         Widget = true,
         WidgetOff = false,
         Style = 0, -- номер стиля, 0 - стандарт, 1 - кастом
-        fddsfgdsf= imgui.ImVec4(1,1,1,1)
     },
     Channels = {
         'Всем'
@@ -62,6 +63,7 @@ local Ini = inicfg.load({
     }
 }, "DepChannels")
 inicfg.save(Ini, "DepChannels")
+
 local tableu8 = {} -- загрузка таблиц тегов
 local tableu8Combo = {}
 for _, value in ipairs(Ini.Channels) do
@@ -74,11 +76,13 @@ for _, value in ipairs(Ini.Symbols) do
     table.insert(tableu8Symb, u8(value))
     table.insert(tableu8ComboSymb, u8(value))
 end
-local WinState, show =          imgui.new.bool(), imgui.new.bool() -- для открытия/закрытия окон
+
+local MainMenu, SettingsMenu =  imgui.new.bool(), imgui.new.bool() -- для открытия/закрытия окон
+
 local inputCommand =            imgui.new.char[64](u8:encode(Ini.Settings.Command)) -- изменение команды активации
 local inputChannels =           imgui.new.char[64]() -- добавить в тег в список
-local inputSingleSymbol =       imgui.new.char[64](u8:encode(Ini.Symbols[1])) -- редакция единственного символа между тегами если их выбор не включен
 local inputSymbol =             imgui.new.char[64]() -- добавить в символ в список
+
 local checkboxEnab =            imgui.new.bool(Ini.Settings.Enable) -- включить подмену
 local checkboxNoft =            imgui.new.bool(Ini.Settings.Notification) -- чекбокс включения уведомления
 local checkboxScob =            imgui.new.bool(Ini.Settings.Scobs) -- чекбокс включения скобок между тегов
@@ -86,12 +90,14 @@ local checkboxChat =            imgui.new.bool(Ini.Settings.Chat) -- чекбокс вкл
 local checkboxSymb =            imgui.new.bool(Ini.Settings.SymbolSelection) -- чекбокс включения таблицы текста между тегов
 local checkboxline =            imgui.new.bool(Ini.Settings.LineBreak) -- чекбокс включения перенос строки
 local checkboxlinetag =         imgui.new.bool(Ini.Settings.LineBreakTags) -- чекбокс включения перенос строки с добавлением конструкции
+
 local radiobuttonStyle =        imgui.new.int(Ini.Settings.Style) -- выбор стиля
 local selectedChannel =         imgui.new.int(0) -- выбранный элемент таблицы тегов
 local selectedSymbol =          imgui.new.int(0) -- выбранный элемент таблицы текста между тегов
 local selectedComboTag1 =       imgui.new.int(Ini.Settings.lastChannel1 - 1) -- выбранный первый тег в combo
 local selectedComboSymbol =     imgui.new.int(Ini.Settings.lastSymbol - 1) -- выбранный первый текст между в combo
 local selectedComboTag2 =       imgui.new.int(Ini.Settings.lastChannel2 - 1) -- выбранный второй тег в combo
+
 local ImItems =                 imgui.new['const char*'][#tableu8](tableu8) -- массив тегов, изменяется только в настройке
 local ImItemsIni =              imgui.new['const char*'][#tableu8Combo](tableu8Combo) -- массив тегов, изменяется везде
 local ImItemsSymb =             imgui.new['const char*'][#tableu8Symb](tableu8Symb) -- массив символов между, изменяется только в настройке
@@ -103,9 +109,9 @@ local colorEditStyleButton =    imgui.new.float[3](Ini.CustomStyleButton.r, Ini.
 local colorEditStyleElments =   imgui.new.float[3](Ini.CustomStyleElments.r, Ini.CustomStyleElments.g, Ini.CustomStyleElments.b) -- выбор цвета элементов (кастомная тема)
 local widgetTransparency =      imgui.new.float[1](Ini.Settings.WidgetTransparency) -- выбор прозрачности она виджета
 
-imgui.OnFrame(function() return show[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function() -- настройки
+imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function() -- настройки
     imgui.SetNextWindowPos(imgui.ImVec2(Ini.Settings.PosX, Ini.Settings.PosY), imgui.Cond.FirstUseEver, imgui.ImVec2(1, 1))
-    imgui.Begin('Settings', show, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize)
+    imgui.Begin('Settings', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize)
     if imgui.BeginChild('SettingTwo', imgui.ImVec2(225, 213), true, imgui.WindowFlags.NoScrollbar) then
         imgui.Text(u8'Команда активации:')
         imgui.SameLine()
@@ -119,16 +125,6 @@ imgui.OnFrame(function() return show[0] and not isPauseMenuActive() and not samp
         imgui.ToggleButton(u8'Кнопка ввода в чат', checkboxChat)
         imgui.Hind(u8'При включении этого параметра скрипт не будет автоматически подставлять теги под\nсообщения в чат департамента, а в главном меню появится кнопка "Ввести в чат".')
         imgui.Separator()
-        if not checkboxSymb[0] then
-            imgui.Text(u8'Текст между тегами:')
-            imgui.SameLine()
-            imgui.PushItemWidth(74)
-            imgui.SetCursorPosX(145)
-            imgui.InputText('##singleSymbol', inputSingleSymbol, 64)
-            imgui.PopItemWidth()
-        end
-        imgui.ToggleButton(u8'Выбор текста между', checkboxSymb)
-        imgui.Hind(u8"При включении этого параметра добавится список символов между тегов, где вы можете добавить свой.\nТакже добавится выбор символа из списка в главном меню.")
         imgui.ToggleButton(u8'Закрыть теги в скобки', checkboxScob)
         imgui.Separator()
         imgui.ToggleButton(u8'Перенос сообщения /d', checkboxline)
@@ -275,14 +271,14 @@ imgui.OnFrame(function() return show[0] and not isPauseMenuActive() and not samp
     imgui.End()
 end)
 
-imgui.OnFrame(function() return WinState[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function(self) -- главное меню
+imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function(self) -- главное меню
     if isKeyDown(32) and self.HideCursor == false then -- скрыть курсор если нажат пробел
         self.HideCursor = true
     elseif not isKeyDown(32) then
         self.HideCursor = false
     end
     imgui.SetNextWindowPos(imgui.ImVec2(Ini.Settings.PosX, Ini.Settings.PosY), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
-    imgui.Begin('Departament', WinState, imgui.WindowFlags.NoResize + imgui.WindowFlags.AlwaysAutoResize)
+    imgui.Begin('Departament', MainMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.AlwaysAutoResize)
     imgui.PushItemWidth(150)
     imgui.PushStyleVarVec2(imgui.StyleVar.FramePadding, imgui.ImVec2(7, 4))
     imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(8, 8))
@@ -359,7 +355,7 @@ imgui.OnFrame(function() -- виджет
     imgui.PushStyleColor(imgui.Col.Border, imgui.ImVec4(colors[clr.Border].x, colors[clr.Border].y, colors[clr.Border].z, widgetTransparency[0] - 0.6))
     imgui.PushStyleColor(imgui.Col.Separator, imgui.ImVec4(colors[clr.Separator].x, colors[clr.Separator].y, colors[clr.Separator].z, widgetTransparency[0] - 0.5))
 
-    imgui.Begin('Widget', show, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.AlwaysAutoResize)
+    imgui.Begin('Widget', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.AlwaysAutoResize)
     
     imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(8, 7))
     imgui.CenterText('Departament')
@@ -430,11 +426,11 @@ function main()
     while not isSampAvailable() do wait(0) end
     sampRegisterChatCommand(Ini.Settings.Command, function()
         if radiobuttonStyle[0] == 0 then DetermineFractionColor() end
-        WinState[0] = not WinState[0]
+        MainMenu[0] = not MainMenu[0]
     end)
     sampRegisterChatCommand('depset', function()
         if radiobuttonStyle[0] == 0 then DetermineFractionColor() end
-        show[0] = not show[0]
+        SettingsMenu[0] = not SettingsMenu[0]
     end)
 
     myname = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) -- получения имени твоего персонажа
@@ -584,38 +580,25 @@ function Save(param)
         ImItems = imgui.new['const char*'][#tableu8](tableu8)
     end
     ImItemsIni = imgui.new['const char*'][#tableu8Combo](tableu8Combo)
-    sampRegisterChatCommand(Ini.Settings.Command, function() WinState[0] = not WinState[0] end) -- регестрация новой команды заданной в input
-
-    if param == 1 then
-        Ini.Settings.Command = u8:decode(ffi.string(inputCommand)) -- одиночное сохранения текста между
-        for index, value in ipairs(Ini.Symbols) do
-            if value == u8:decode(ffi.string(inputSingleSymbol)) then
-                table.remove(Ini.Symbols, index)
-                table.remove(tableu8ComboSymb, index)
-            end
-        end
-        table.insert(Ini.Symbols, 1, u8:decode(ffi.string(inputSingleSymbol)))
-        table.insert(tableu8ComboSymb, 1, ffi.string(inputSingleSymbol))
-        ImItemsIniSymb = imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb)
-        Ini.Settings.lastSymbol = 1
-    else -- сохранения списка текста между
-        for value, _ in pairs(Ini.Symbols) do -- сохранение списка текста между тегов в Combo и Ini
-            Ini.Symbols[value] = nil
-            tableu8ComboSymb[value] = nil
-        end
-        for _, value in ipairs(tableu8Symb) do
-            table.insert(Ini.Symbols, u8:decode(ffi.string(value)))
-            table.insert(tableu8ComboSymb, value)
-        end
-        if rawequal(next(tableu8Symb), nil) then -- Если талица пуста, то
-            sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Нельзя сохранять пустой список!", -1)
-            table.insert(Ini.Symbols, '-')
-            table.insert(tableu8ComboSymb, '-')
-            table.insert(tableu8Symb, '-')
-            ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
-        end
-        ImItemsIniSymb = imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb)
+    sampRegisterChatCommand(Ini.Settings.Command, function() MainMenu[0] = not MainMenu[0] end) -- регестрация новой команды заданной в input
+     -- сохранения списка текста между
+    for value, _ in pairs(Ini.Symbols) do -- сохранение списка текста между тегов в Combo и Ini
+        Ini.Symbols[value] = nil
+        tableu8ComboSymb[value] = nil
     end
+    for _, value in ipairs(tableu8Symb) do
+        table.insert(Ini.Symbols, u8:decode(ffi.string(value)))
+        table.insert(tableu8ComboSymb, value)
+    end
+    if rawequal(next(tableu8Symb), nil) then -- Если талица пуста, то
+        sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Нельзя сохранять пустой список!", -1)
+        table.insert(Ini.Symbols, '-')
+        table.insert(tableu8ComboSymb, '-')
+        table.insert(tableu8Symb, '-')
+        ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
+    end
+    ImItemsIniSymb = imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb)
+
     inicfg.save(Ini, "DepChannels")
 end
 -- тумблер
