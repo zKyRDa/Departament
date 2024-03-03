@@ -2,7 +2,7 @@ script_name('Departament')
 script_author('KyRDa')
 script_description('/depset')
 script_version('3')
--- gdfdfg
+
 require 'lib.moonloader'
 local imgui = require 'mimgui'
 local encoding = require 'encoding'
@@ -78,7 +78,7 @@ end
 local MainMenu, SettingsMenu =  imgui.new.bool(), imgui.new.bool() -- для открытия/закрытия окон
 
 local inputCommand =            imgui.new.char[64](u8:encode(Ini.Settings.Command)) -- изменение команды активации
-local inputform =               imgui.new.char[64](u8:encode(Ini.Settings.Form)) -- форма (конструкция) постановки
+local inputForm =               imgui.new.char[64](u8:encode(Ini.Settings.Form)) -- форма (конструкция) постановки
 local inputChannels =           imgui.new.char[64]() -- добавить в тег в список
 local inputSymbol =             imgui.new.char[64]() -- добавить в символ в список
 
@@ -106,16 +106,7 @@ local widgetTransparency =      imgui.new.float[1](Ini.Settings.WidgetTransparen
 
 imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function() -- настройки
     imgui.SetNextWindowPos(imgui.ImVec2(Ini.Settings.PosX, Ini.Settings.PosY), imgui.Cond.FirstUseEver, imgui.ImVec2(1, 1))
-    imgui.Begin('Settings', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize + imgui.WindowFlags.NoTitleBar)
-
-    if imgui.BeginPopupModal('Form') then
-        -- imgui.SetWindowSizeVec2(imgui.ImVec2(290, 190)) -- задаём размер окна
-        imgui.Text('Test')
-        if imgui.Button(u8'Изменить и закрыть', imgui.ImVec2(280, 24)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
-            imgui.CloseCurrentPopup()
-        end
-        imgui.EndPopup()
-    end
+    imgui.Begin('Settings', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize)
 
     if imgui.BeginPopup('WidgetSettings') then -- Настрока виджета, всплывающее окно при нажатии кнопки "Виджет"
         for i = 0, 1 do
@@ -169,15 +160,13 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.EndPopup()
     end
 
-    imgui.PushFont(big) imgui.CenterText('Settings') imgui.PopFont()
-    imgui.Separator()
-
-    if imgui.BeginChild('SettingTwo', imgui.ImVec2(225, 213), true, imgui.WindowFlags.NoScrollbar) then
+    -- main
+    if imgui.BeginChild('MainSettings', imgui.ImVec2(225, 213), true, imgui.WindowFlags.NoScrollbar) then
         imgui.Text(u8'Команда активации:')
         imgui.SameLine()
         imgui.PushItemWidth(74)
         imgui.SetCursorPosX(145)
-        imgui.InputText('##inputcommand', inputCommand, 64)
+        imgui.InputText('##inputcommand', inputCommand, 32)
         imgui.Hind(u8"Введите сюда жалемую команду без '/' для вывода главного меню.")
         imgui.PopItemWidth()
         imgui.ToggleButton(u8'Кнопка ввода в чат', checkboxChat)
@@ -186,11 +175,27 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.Separator()
         imgui.Text(u8'Форма: '..Ini.Settings.Form)
         if imgui.Button(u8'Изменить', imgui.ImVec2(280, 24)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
-            imgui.OpenPopup('Form')
+            imgui.OpenPopup('FormSetting')
         end
-        if imgui.BeginChild('form_description', imgui.ImVec2(-1, 30), true) then
-            imgui.CenterText(u8'# — тэг | $ — волна')
-            imgui.EndChild()
+
+        if imgui.BeginPopupModal('FormSetting', _, imgui.WindowFlags.AlwaysAutoResize + imgui.WindowFlags.NoCollapse) then
+            -- imgui.SetWindowSizeVec2(imgui.ImVec2(290, 190)) -- задаём размер окна
+            imgui.CenterText(u8'Введите форму отправки сообщений')
+            imgui.CenterText(u8'департамента вашего сервера')
+            
+            imgui.PushStyleVarFloat(imgui.StyleVar.ChildRounding, 12)
+            imgui.InputText('', inputForm, 32)
+            imgui.PopStyleVar()
+
+            if imgui.BeginChild('form_description', imgui.ImVec2(-1, 45), true) then
+                imgui.CenterText(u8'Примечание:\n# — тэг | $ — волна')
+                imgui.EndChild()
+            end
+            
+            if imgui.Button(u8'Изменить и закрыть', imgui.ImVec2(280, 24)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
+                imgui.CloseCurrentPopup()
+            end
+            imgui.EndPopup()
         end
 
         imgui.Separator()
@@ -265,23 +270,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
     end
     imgui.SameLine()
     if imgui.Button(u8'Сохранить и закрыть', imgui.ImVec2(331, 30)) then -- сохранение
-        -- local Symbols = {'#', '$', '#'}
-        -- for symb in Symbols do
-        --     local flag = false
-        --     for el in inputform[0] do
-        --         if el == symb then
-        --             flag = true
-        --             break
-        --         end
-        --     end
-        --     if not flag then
-
-        --         return
-        --     end
-        -- end
-        -- SettingsMenu[0] = false
-        -- Save()
-        imgui.OpenPopup('Form')
+        Save()
     end
     imgui.PopStyleVar()
     imgui.End()
@@ -442,7 +431,7 @@ function main()
     end)
     sampRegisterChatCommand('depset', function()
         if radiobuttonStyle[0] == 0 then DetermineFractionColor() end
-        SettingsMenu[0] = true
+        SettingsMenu[0] = not SettingsMenu[0]
     end)
 
     myname = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) -- получения имени твоего персонажа
@@ -456,10 +445,11 @@ function DetermineFractionColor()
     local g = bit.band(bit.rshift(rgbCode, 8), 0xFF)
     local b = bit.band(rgbCode, 0xFF)
 
-    if r + g + b < 757 and r + g + b ~= 292 then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при снятии маски = 255, 255, 255), 292 = grey
+    if r + g + b < 757 and r + g + b ~= 292 and r + g + b ~= Ini.FractionColor.r + Ini.FractionColor.g + Ini.FractionColor.b and sampIsLocalPlayerSpawned() then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при снятии маски = 255, 255, 255), 292 = grey
+        styles[Ini.Settings.Style].func(imgui.ImVec4(r, g, b, 1))
+
         Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b = r, g, b
-        inicfg.save(Ini.FractionColor, "DepChannels")
-        styles[0].func(imgui.ImVec4(r, g, b, 1))
+        inicfg.save(Ini, "DepChannels")
     end
 end
 
@@ -469,6 +459,7 @@ function Theme()
     local style = imgui.GetStyle()
     local colors = style.Colors
     style.FrameRounding = 5
+    style.ChildRounding = 4
     style.WindowTitleAlign = imgui.ImVec2(0.5, 0.5)
     style.ButtonTextAlign = imgui.ImVec2(0.5, 0.5)
     style.ScrollbarSize = 17
@@ -496,9 +487,9 @@ styles = {
             colors[clr.FrameBgHovered] =    imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.431)
             colors[clr.FrameBgActive] =     imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.431)
             colors[clr.Button] =            imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.588)
-            colors[clr.ButtonHovered] =     imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
+            colors[clr.ButtonHovered] =     imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.8)
             colors[clr.ButtonActive] =      imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
-            colors[clr.HeaderHovered] =     imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
+            colors[clr.HeaderHovered] =     imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.8)
             colors[clr.HeaderActive] =      imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
             colors[clr.SliderGrab] =        imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.5)
             colors[clr.SliderGrabActive] =  imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
@@ -540,9 +531,9 @@ imgui.OnInitialize(function()
         inicfg.save(Ini, "DepChannels")
     end
     WidgetPosX, WidgetPosY = Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY -- перемещение переменных в оперативную память
-    glyph_ranges = imgui.GetIO().Fonts:GetGlyphRangesCyrillic()
-    font_alert = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 50, nil, glyph_ranges)
-    big = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 18.0, nil, glyph_ranges)
+
+    font_alert = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 50, nil, imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
+    
     Theme()
 end)
 -- Выравнивание текста
@@ -559,7 +550,7 @@ function imgui.Hind(text)
     end
 end
 -- сохранение настроек
-function Save(param)
+function Save()
     Ini.Settings.Style = radiobuttonStyle[0]
     Ini.Settings.Command = u8:decode(ffi.string(inputCommand))
     Ini.Settings.Chat = checkboxChat[0] and true or false
