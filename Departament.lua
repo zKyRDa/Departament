@@ -113,7 +113,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
             imgui.SameLine()
             if imgui.RadioButtonIntPtr(styles[i].name, radiobuttonStyle, i) then
                 radiobuttonStyle[0] = i
-                styles[i].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1))
+                styles[i].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1), true)
             end
         end
         if radiobuttonStyle[0] == 1 then
@@ -446,7 +446,7 @@ function DetermineFractionColor()
     local b = bit.band(rgbCode, 0xFF)
 
     if r + g + b < 757 and r + g + b ~= 292 and r + g + b ~= Ini.FractionColor.r + Ini.FractionColor.g + Ini.FractionColor.b and sampIsLocalPlayerSpawned() then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при снятии маски = 255, 255, 255), 292 = grey
-        styles[Ini.Settings.Style].func(imgui.ImVec4(r, g, b, 1))
+        styles[Ini.Settings.Style].func(imgui.ImVec4(r, g, b, 1), false)
 
         Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b = r, g, b
         inicfg.save(Ini, "DepChannels")
@@ -465,13 +465,13 @@ function Theme()
     style.ScrollbarSize = 17
     colors[imgui.Col.Header] = imgui.ImVec4(0, 0, 0, 0)
     colors[imgui.Col.CheckMark] = imgui.ImVec4(1, 1, 1, 1)
-    styles[Ini.Settings.Style].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1))
+    styles[Ini.Settings.Style].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1), true)
 end
 styles = {
     [0] = {
         name = u8'Стандартная тема',
-        func = function(StyleColor)
-            imgui.SwitchContext()
+        func = function(StyleColor, Switch)
+            if Switch then imgui.SwitchContext() end -- для фракционного цвета интерфейса
             local colors = imgui.GetStyle().Colors
             local clr = imgui.Col
             
