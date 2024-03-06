@@ -183,14 +183,14 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
             imgui.CenterText(u8'Введите форму отправки сообщений')
             imgui.CenterText(u8'департамента вашего сервера')
             
-            imgui.PushStyleVarFloat(imgui.StyleVar.ChildRounding, 12)
+            -- imgui.PushStyleVarFloat(imgui.StyleVar.ChildRounding, 0)
             imgui.InputText('', inputForm, 32)
-            imgui.PopStyleVar()
-
+            
             if imgui.BeginChild('form_description', imgui.ImVec2(-1, 45), true) then
                 imgui.CenterText(u8'Примечание:\n# — тэг | $ — волна')
                 imgui.EndChild()
             end
+            -- imgui.PopStyleVar()
             
             if imgui.Button(u8'Изменить и закрыть', imgui.ImVec2(280, 24)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
                 imgui.CloseCurrentPopup()
@@ -337,11 +337,11 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.PopStyleVar(2)
     imgui.Separator()
     imgui.CenterText(u8'Предпросмотр')
-    if checkboxScob[0] then -- предпросмотр
-        imgui.CenterText('['..tableu8Combo[Ini.Settings.lastChannel1]..'] '..tableu8ComboSymb[Ini.Settings.lastSymbol]..' ['..tableu8Combo[Ini.Settings.lastChannel2]..']:')
-    else
-        imgui.CenterText(tableu8Combo[Ini.Settings.lastChannel1]..' '..tableu8ComboSymb[Ini.Settings.lastSymbol]..' '..tableu8Combo[Ini.Settings.lastChannel2]..':')
-    end
+    -- if checkboxScob[0] then -- предпросмотр
+    --     imgui.CenterText('['..tableu8Combo[Ini.Settings.lastChannel1]..'] '..tableu8ComboSymb[Ini.Settings.lastSymbol]..' ['..tableu8Combo[Ini.Settings.lastChannel2]..']:')
+    -- else
+    --     imgui.CenterText(tableu8Combo[Ini.Settings.lastChannel1]..' '..tableu8ComboSymb[Ini.Settings.lastSymbol]..' '..tableu8Combo[Ini.Settings.lastChannel2]..':')
+    -- end
     imgui.End()
 end)
 
@@ -445,9 +445,9 @@ function DetermineFractionColor()
     local g = bit.band(bit.rshift(rgbCode, 8), 0xFF)
     local b = bit.band(rgbCode, 0xFF)
 
-    if r + g + b < 757 and r + g + b ~= 292 and r + g + b ~= Ini.FractionColor.r + Ini.FractionColor.g + Ini.FractionColor.b and sampIsLocalPlayerSpawned() then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при снятии маски = 255, 255, 255), 292 = grey
+    if r + g + b < 757 and r + g + b ~= 292 and sampIsLocalPlayerSpawned() and imgui.Loaded then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при снятии маски = 255, 255, 255), 292 = grey
         styles[Ini.Settings.Style].func(imgui.ImVec4(r, g, b, 1), false)
-
+        
         Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b = r, g, b
         inicfg.save(Ini, "DepChannels")
     end
@@ -470,8 +470,7 @@ end
 styles = {
     [0] = {
         name = u8'Стандартная тема',
-        func = function(StyleColor, Switch)
-            if Switch then imgui.SwitchContext() end -- для фракционного цвета интерфейса
+        func = function(StyleColor)
             local colors = imgui.GetStyle().Colors
             local clr = imgui.Col
             
@@ -498,9 +497,9 @@ styles = {
     [1] = {
         name = u8'Кастомная тема',
         func = function()
-            imgui.SwitchContext()
             local colors = imgui.GetStyle().Colors
             local clr = imgui.Col
+
             colors[clr.WindowBg] =          imgui.ImVec4(colorEditStyleBg[0], colorEditStyleBg[1], colorEditStyleBg[2], 0.99)
             colors[clr.PopupBg] =           imgui.ImVec4(colorEditStyleBg[0], colorEditStyleBg[1], colorEditStyleBg[2], 1)
             colors[clr.TitleBg] =           imgui.ImVec4(colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2], 1)
@@ -531,10 +530,11 @@ imgui.OnInitialize(function()
         inicfg.save(Ini, "DepChannels")
     end
     WidgetPosX, WidgetPosY = Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY -- перемещение переменных в оперативную память
-
     font_alert = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 50, nil, imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
-    
+
     Theme()
+
+    imgui.Loaded = true
 end)
 -- Выравнивание текста
 function imgui.CenterText(text)
