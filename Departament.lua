@@ -113,7 +113,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
             imgui.SameLine()
             if imgui.RadioButtonIntPtr(styles[i].name, radiobuttonStyle, i) then
                 radiobuttonStyle[0] = i
-                styles[i].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1), true)
+                styles[i].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1))
             end
         end
         if radiobuttonStyle[0] == 1 then
@@ -170,31 +170,52 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.Hind(u8"Введите сюда жалемую команду без '/' для вывода главного меню.")
         imgui.PopItemWidth()
         imgui.ToggleButton(u8'Кнопка ввода в чат', checkboxChat)
-        imgui.Hind(u8'При включении этого параметра скрипт не будет автоматически подставлять теги под\nсообщения в чат департамента, а в главном меню появится кнопка "Ввести в чат".')
+        if imgui.IsItemHovered() then
+            imgui.BeginTooltip()
+            imgui.Text(u8'При включении этого параметра скрипт не будет автоматически подставлять теги под\nсообщения в чат департамента, а в главном меню появится кнопка "Ввести в чат".')
+            imgui.TextColored(imgui.ImVec4(1.0, 0.0, 0.0, 1.0 ), u8'ВНИМАНИЕ: Перенос строки не будет работать.')
+            imgui.EndTooltip()
+        end
         
         imgui.Separator()
-        imgui.Text(u8'Форма: '..Ini.Settings.Form)
-        if imgui.Button(u8'Изменить', imgui.ImVec2(280, 24)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
+        imgui.Text(u8'Форма:\n'..Ini.Settings.Form)
+        imgui.SameLine()
+        imgui.SetCursorPosX(140)
+        if imgui.Button(u8'Изменить', imgui.ImVec2(80, 30)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
             imgui.OpenPopup('FormSetting')
         end
 
         if imgui.BeginPopupModal('FormSetting', _, imgui.WindowFlags.AlwaysAutoResize + imgui.WindowFlags.NoCollapse) then
-            -- imgui.SetWindowSizeVec2(imgui.ImVec2(290, 190)) -- задаём размер окна
-            imgui.CenterText(u8'Введите форму отправки сообщений')
-            imgui.CenterText(u8'департамента вашего сервера')
+            function imgui.PopupCenterText(text)
+                imgui.SetCursorPosX(imgui.GetWindowWidth()-imgui.CalcTextSize(text).x/2 - 345)
+                imgui.Text(text)
+            end
+            imgui.PopupCenterText(u8'Введите форму отправки сообщений')
+            imgui.PopupCenterText(u8'департамента вашего сервера:')
             
-            -- imgui.PushStyleVarFloat(imgui.StyleVar.ChildRounding, 0)
+            
+            imgui.PushItemWidth(270)
             imgui.InputText('', inputForm, 32)
+            imgui.PopItemWidth()
             
-            if imgui.BeginChild('form_description', imgui.ImVec2(-1, 45), true) then
-                imgui.CenterText(u8'Примечание:\n# — тэг | $ — волна')
+            
+            if imgui.Button(u8'Изменить и закрыть', imgui.ImVec2(270, 30)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
+                imgui.CloseCurrentPopup()
+                
+                Ini.Settings.Form = u8:decode(ffi.string(inputForm))
+                inicfg.save(Ini, "DepChannels")
+            end
+
+            imgui.SetCursorPos(imgui.ImVec2(280, 25))
+            if imgui.BeginChild('form_description', imgui.ImVec2(200, -1), true) then
+                imgui.Spacing()
+                imgui.CenterText(u8'Примечание:')
+                imgui.CenterText(u8'#1 — первый выбранный тэг')
+                imgui.CenterText(u8'#2 — второй выбранный тэг')
+                imgui.CenterText(u8'$ — волна')
                 imgui.EndChild()
             end
-            -- imgui.PopStyleVar()
-            
-            if imgui.Button(u8'Изменить и закрыть', imgui.ImVec2(280, 24)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
-                imgui.CloseCurrentPopup()
-            end
+
             imgui.EndPopup()
         end
 
@@ -322,11 +343,7 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
             Ini.Settings.PosX, Ini.Settings.PosY = pos.x, pos.y
             inicfg.save(Ini, "DepChannels")
             sampSetChatInputEnabled(true) -- открытие чата
-            if Ini.Settings.Scobs then -- ввод в чат
-                sampSetChatInputText('/d ['..Ini.Channels[Ini.Settings.lastChannel1]..'] '..Ini.Symbols[Ini.Settings.lastSymbol]..' ['..Ini.Channels[Ini.Settings.lastChannel2]..']:')
-            else
-                sampSetChatInputText('/d '..Ini.Channels[Ini.Settings.lastChannel1]..' '..Ini.Symbols[Ini.Settings.lastSymbol]..' '..Ini.Channels[Ini.Settings.lastChannel2]..':')
-            end
+            sampSetChatInputText('/d '..GetCompletedForm())
         end
     else
         if imgui.ToggleButton(u8'Включить подмену', checkboxEnab, 195) then
@@ -335,13 +352,10 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
         end
     end
     imgui.PopStyleVar(2)
+
     imgui.Separator()
     imgui.CenterText(u8'Предпросмотр')
-    -- if checkboxScob[0] then -- предпросмотр
-    --     imgui.CenterText('['..tableu8Combo[Ini.Settings.lastChannel1]..'] '..tableu8ComboSymb[Ini.Settings.lastSymbol]..' ['..tableu8Combo[Ini.Settings.lastChannel2]..']:')
-    -- else
-    --     imgui.CenterText(tableu8Combo[Ini.Settings.lastChannel1]..' '..tableu8ComboSymb[Ini.Settings.lastSymbol]..' '..tableu8Combo[Ini.Settings.lastChannel2]..':')
-    -- end
+    imgui.CenterText(u8:encode(GetCompletedForm()))
     imgui.End()
 end)
 
@@ -364,17 +378,22 @@ imgui.OnFrame(function() -- виджет
     
     imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(8, 7))
     imgui.CenterText('Departament')
-    imgui.Separator()
-    if checkboxScob[0] then -- предпросмотр
-        imgui.CenterText('['..tableu8Combo[Ini.Settings.lastChannel1]..'] '..tableu8ComboSymb[Ini.Settings.lastSymbol]..' ['..tableu8Combo[Ini.Settings.lastChannel2]..']:')
-    else
-        imgui.CenterText(tableu8Combo[Ini.Settings.lastChannel1]..' '..tableu8ComboSymb[Ini.Settings.lastSymbol]..' '..tableu8Combo[Ini.Settings.lastChannel2]..':')
-    end
-    imgui.PopStyleVar()
 
+    imgui.Separator()
+    imgui.CenterText(u8:encode(GetCompletedForm()))
+
+    imgui.PopStyleVar()
     imgui.PopStyleColor(3)
     imgui.End()
 end).HideCursor = true
+
+function GetCompletedForm()
+    local form = string.gsub(Ini.Settings.Form, '#1', Ini.Channels[Ini.Settings.lastChannel1])
+    form = string.gsub(form, '%$', Ini.Symbols[Ini.Settings.lastSymbol])
+    form = string.gsub(form, '#2', Ini.Channels[Ini.Settings.lastChannel2])
+
+    return form
+end
 
 function sampev.onServerMessage(color, text) -- счётчик символов звания, ника и id для корректного переноса текста
     if text:find('%[D%] (.+)% '..myname..'%[(%d+)%]:') then
@@ -385,38 +404,35 @@ function sampev.onServerMessage(color, text) -- счётчик символов звания, ника и 
     end
 end
 
-local onestr -- onestr и twostr - переменные для переноса
-local twostr
-local str -- последняя отправленная строка в /d
+local firstMessage -- переменные для переноса
+local secondMessage
+local Message -- последняя отправленная строка в /d
 function sampev.onSendCommand(text)
-    if not checkboxChat[0] and checkboxEnab[0] and text:find('^/d%s+.+%s*') and str ~= text and onestr ~= text and twostr ~= text then
+    if not checkboxChat[0] and checkboxEnab[0] and text:find('^/d%s+.+%s*') and Message ~= text and firstMessage ~= text and secondMessage ~= text then
         local dtext = text:match('^/d%s+(.+)%s*')
-        str = string.format('/d '..Ini.Settings.Form, Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], dtext)
+        Message = string.format('/d %s %s', GetCompletedForm(), dtext)
 
-        if #str:sub(3) > Ini.Settings.MaxText and Ini.Settings.LineBreak then -- перенос строки
-            onestr = string.match(dtext:sub(1, Ini.Settings.MaxText), "(.*) (.*)") -- первый (.*) - текст в первой строчке, второй - остаток текста 
+        if #Message:sub(3) > Ini.Settings.MaxText and Ini.Settings.LineBreak then -- перенос строки
+            firstMessage = string.match(dtext:sub(1, Ini.Settings.MaxText), "(.*) (.*)") -- первый (.*) - текст в первой строчке, второй - остаток текста 
             
-            if onestr == nil then
+            if firstMessage == nil then
                 return sampAddChatMessage('{cb2821}[Departament]:{FFFFFF} Перенос строки принимает только текст с пробелами. Выключить эту функцию можно в /depset', -1)
             end
 
-            twostr = string.match(string.sub(dtext, #onestr+2, 119), "(.*)") -- начать текст с момента переноса
+            secondMessage = string.match(string.sub(dtext, #firstMessage+2, 119), "(.*)") -- начать текст с момента переноса
 
-            if Ini.Settings.Scobs then
-                onestr = string.format('/d [%s] %s [%s]: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], onestr)
-                twostr = string.format('/d [%s] %s [%s]: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], twostr)
-            else
-                onestr = string.format('/d %s %s %s: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], onestr)
-                twostr = string.format('/d %s %s %s: %s', Ini.Channels[Ini.Settings.lastChannel1], Ini.Symbols[Ini.Settings.lastSymbol], Ini.Channels[Ini.Settings.lastChannel2], twostr)
-            end
+            -- formation
+            firstMessage = string.format('/d %s %s', GetCompletedForm(), firstMessage)
+            secondMessage = string.format('/d %s %s', GetCompletedForm(), secondMessage)
 
+            -- Send
             lua_thread.create(function()
-                sampSendChat(onestr)
-                wait(2000)
-                sampSendChat(twostr)
+                sampSendChat(firstMessage)
+                wait(2000) -- 2 sec
+                sampSendChat(secondMessage)
             end)
         else
-            sampSendChat(str)
+            sampSendChat(Message)
         end
 
         return false
@@ -433,6 +449,9 @@ function main()
         if radiobuttonStyle[0] == 0 then DetermineFractionColor() end
         SettingsMenu[0] = not SettingsMenu[0]
     end)
+    sampRegisterChatCommand('depget', function()
+        sampAddChatMessage(GetCompletedForm(), -1)
+    end)
 
     myname = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) -- получения имени твоего персонажа
 
@@ -446,7 +465,7 @@ function DetermineFractionColor()
     local b = bit.band(rgbCode, 0xFF)
 
     if r + g + b < 757 and r + g + b ~= 292 and sampIsLocalPlayerSpawned() and imgui.Loaded then -- 757 = white ([ARZ]при заходе в игру = 253, 252, 252; при снятии маски = 255, 255, 255), 292 = grey
-        styles[Ini.Settings.Style].func(imgui.ImVec4(r, g, b, 1), false)
+        styles[Ini.Settings.Style].func(imgui.ImVec4(r, g, b, 1))
         
         Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b = r, g, b
         inicfg.save(Ini, "DepChannels")
@@ -465,7 +484,7 @@ function Theme()
     style.ScrollbarSize = 17
     colors[imgui.Col.Header] = imgui.ImVec4(0, 0, 0, 0)
     colors[imgui.Col.CheckMark] = imgui.ImVec4(1, 1, 1, 1)
-    styles[Ini.Settings.Style].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1), true)
+    styles[Ini.Settings.Style].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1))
 end
 styles = {
     [0] = {
