@@ -15,23 +15,22 @@ local sampev = require "lib.samp.events"
 local Ini = inicfg.load({
     Settings = {
         Enable = false,
-        Scobs = true,
         Chat = false,
         LineBreak = true, -- Перенос строки
         Command = 'dep',
-        Form = '[#] $ [#]:',
+        Form = '[#1] $ [#2]:',
         lastChannel1 = 1,
         lastSymbol = 1,
         lastChannel2 = 1,
-        PosX = 0.0,
-        PosY = 0.0,
-        WidgetPosX = 0.0,
-        WidgetPosY = 0.0,
+        PosX = 0,
+        PosY = 0,
+        WidgetPosX = 0,
+        WidgetPosY = 0,
         WidgetTransparency = 1.0,
+        WidgetFontSize = 13.5,
         MaxText = 80, -- максимальное количество символов в строчке /d для переноса
         Widget = true,
-        WidgetOff = false,
-        Style = 0, -- номер стиля, 0 - стандарт, 1 - кастом
+        Style = 0, -- номер стиля, 0 - стандарт (фракционный), 1 - кастом
     },
     Channels = {
         'Всем'
@@ -85,6 +84,7 @@ local inputSymbol =             imgui.new.char[64]() -- добавить в символ в спис
 local checkboxEnab =            imgui.new.bool(Ini.Settings.Enable) -- включить подмену
 local checkboxChat =            imgui.new.bool(Ini.Settings.Chat) -- чекбокс включения кнопки 'Ввести в чат'
 local checkboxline =            imgui.new.bool(Ini.Settings.LineBreak) -- чекбокс включения перенос строки
+local checkboxWidg =            imgui.new.bool(Ini.Settings.Widget) -- вкл виджет
 
 local radiobuttonStyle =        imgui.new.int(Ini.Settings.Style) -- выбор стиля
 local selectedChannel =         imgui.new.int(0) -- выбранный элемент таблицы тегов
@@ -93,28 +93,29 @@ local selectedComboTag1 =       imgui.new.int(Ini.Settings.lastChannel1 - 1) -- 
 local selectedComboSymbol =     imgui.new.int(Ini.Settings.lastSymbol - 1) -- выбранный первый текст между в combo
 local selectedComboTag2 =       imgui.new.int(Ini.Settings.lastChannel2 - 1) -- выбранный второй тег в combo
 
-local ImItems =                 imgui.new['const char*'][#tableu8](tableu8) -- массив тегов, изменяется только в настройке
-local ImItemsIni =              imgui.new['const char*'][#tableu8Combo](tableu8Combo) -- массив тегов, изменяется везде
-local ImItemsSymb =             imgui.new['const char*'][#tableu8Symb](tableu8Symb) -- массив символов между, изменяется только в настройке
-local ImItemsIniSymb =          imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb) -- массив тегов, изменяется везде
-local checkboxWidg =            imgui.new.bool(Ini.Settings.Widget) -- вкл виджет
-local checkboxWidgNotOff =      imgui.new.bool(Ini.Settings.WidgetOff) -- не скрывать виджет
 local colorEditStyleBg =        imgui.new.float[3](Ini.CustomStyleBg.r, Ini.CustomStyleBg.g, Ini.CustomStyleBg.b) -- выбор цвета фона окна (кастомная тема)
 local colorEditStyleButton =    imgui.new.float[3](Ini.CustomStyleButton.r, Ini.CustomStyleButton.g, Ini.CustomStyleButton.b) -- выбор цвета кнопок (кастомная тема)
 local colorEditStyleElments =   imgui.new.float[3](Ini.CustomStyleElments.r, Ini.CustomStyleElments.g, Ini.CustomStyleElments.b) -- выбор цвета элементов (кастомная тема)
 local widgetTransparency =      imgui.new.float[1](Ini.Settings.WidgetTransparency) -- выбор прозрачности она виджета
+local widgetFontSize =          imgui.new.float[1](Ini.Settings.WidgetFontSize) -- выбор прозрачности она виджета
+
+local ImItems =                 imgui.new['const char*'][#tableu8](tableu8) -- массив тегов, изменяется только в настройке
+local ImItemsIni =              imgui.new['const char*'][#tableu8Combo](tableu8Combo) -- массив тегов, изменяется везде
+local ImItemsSymb =             imgui.new['const char*'][#tableu8Symb](tableu8Symb) -- массив символов между, изменяется только в настройке
+local ImItemsIniSymb =          imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb) -- массив тегов, изменяется везде
 
 imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function() -- настройки
     imgui.SetNextWindowPos(imgui.ImVec2(Ini.Settings.PosX, Ini.Settings.PosY), imgui.Cond.FirstUseEver, imgui.ImVec2(1, 1))
     imgui.Begin('Settings', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize)
 
-    if imgui.BeginPopup('WidgetSettings') then -- Настрока виджета, всплывающее окно при нажатии кнопки "Виджет"
+    if imgui.BeginPopup('AdditionalSettings') then -- Настрока виджета, всплывающее окно при нажатии кнопки "Виджет"
         for i = 0, 1 do
             imgui.SameLine()
             if imgui.RadioButtonIntPtr(styles[i].name, radiobuttonStyle, i) then
                 radiobuttonStyle[0] = i
                 styles[i].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1))
             end
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
         end
         if radiobuttonStyle[0] == 1 then
             imgui.SetCursorPosX(47)
@@ -122,44 +123,62 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
             if imgui.ColorEdit3(u8'Фон', colorEditStyleBg, imgui.ColorEditFlags.NoInputs) then
                 styles[1].func()
             end
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
             imgui.SameLine()
             if imgui.ColorEdit3(u8'Кнопки', colorEditStyleButton, imgui.ColorEditFlags.NoInputs) then
                 styles[1].func()
             end
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
             imgui.SameLine()
             if imgui.ColorEdit3(u8'Элементы', colorEditStyleElments, imgui.ColorEditFlags.NoInputs) then
                 styles[1].func()
             end
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
             imgui.PopItemWidth()
         end
-        imgui.ToggleButton(u8'Включить виджет', checkboxWidg, 260)
-        imgui.Hind(u8'Включает виджет, где виден канал, к которому вы подключены, при включенной подмене текста.')
+        imgui.ToggleButton(u8'Виджет', checkboxWidg, 260)
+        imgui.Hind(u8'При открытии чата, включает виджет где виден канал, к которому подключены.')
         if checkboxWidg[0] then -- если виджет включен
-            imgui.ToggleButton(u8'Не скрывать виджет', checkboxWidgNotOff, 260)
-            imgui.Hind(u8'Виджет будет виден даже если подмена будет выключена.')
+            imgui.PushItemWidth(127)
+            imgui.Text(u8'Размер текста виджета')
+            imgui.SameLine()
+            imgui.SetCursorPosX(182)
+            imgui.DragFloat("##widgetFontSize", widgetFontSize, 0.05, 0, 100, "%.3f", 1)
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+            if imgui.IsItemActive() then imgui.SetMouseCursor(4) end -- resize EW
+            
+            imgui.Text(u8'Прозрачность окна виджета')
+            imgui.SameLine()
+            imgui.DragFloat("##widgetTransparency", widgetTransparency, 0.005, 0, 1, "%.3f", 1)
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+            if imgui.IsItemActive() then imgui.SetMouseCursor(4) end -- resize EW
+            imgui.PopItemWidth()
+            
             if imgui.Button(u8'Переместить виджет', imgui.ImVec2(300, 25)) then
                 lua_thread.create(function()
                     replace = true
                     imgui.SetNextWindowFocus()
                     while replace do
                         WidgetPosX, WidgetPosY = getCursorPos()
-                        if isKeyDown(32) then -- Space
+                        if isKeyDown(0x20) then -- Space
                             replace = false
-                            Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY = WidgetPosX, WidgetPosY
-                            inicfg.save(Ini, "DepChannels")
+                            return
+                        end
+                        if isKeyDown(0x1B) then -- Space
+                            replace = false
+                            WidgetPosX, WidgetPosY = Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY
                             return
                         end
                         wait(0)
                     end
                 end)
             end
-            imgui.PushItemWidth(127)
-            imgui.SliderFloat(u8"Прозрачность окна виджета", widgetTransparency, 0.0, 1.0)
-            imgui.PopItemWidth()
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+            imgui.Hind(u8'Space для остановки.')
         end
         imgui.EndPopup()
     end
-
+    
     -- main
     if imgui.BeginChild('MainSettings', imgui.ImVec2(225, 213), true, imgui.WindowFlags.NoScrollbar) then
         imgui.Text(u8'Команда активации:')
@@ -184,6 +203,9 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         if imgui.Button(u8'Изменить', imgui.ImVec2(80, 30)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
             imgui.OpenPopup('FormSetting')
         end
+        if imgui.IsItemHovered() then
+            imgui.SetMouseCursor(7) -- hand
+        end
 
         if imgui.BeginPopupModal('FormSetting', _, imgui.WindowFlags.AlwaysAutoResize + imgui.WindowFlags.NoCollapse) then
             function imgui.PopupCenterText(text)
@@ -204,6 +226,9 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
                 
                 Ini.Settings.Form = u8:decode(ffi.string(inputForm))
                 inicfg.save(Ini, "DepChannels")
+            end
+            if imgui.IsItemHovered() then
+                imgui.SetMouseCursor(7) -- hand
             end
 
             imgui.SetCursorPos(imgui.ImVec2(280, 25))
@@ -245,15 +270,23 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
                 ImItems = imgui.new['const char*'][#tableu8](tableu8)
             end
         end
+        if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+
+        imgui.PushStyleColor(imgui.Col.HeaderHovered, imgui.ImVec4(1, 0, 0, 0.431))
+        imgui.PushStyleColor(imgui.Col.HeaderActive, imgui.ImVec4(1, 0, 0, 0.8))
         imgui.PushItemWidth(179)
+
         if imgui.ListBoxStr_arr('##list', selectedChannel, ImItems, #tableu8) then -- listbox
             table.remove(tableu8, selectedChannel[0] + 1)
             ImItems = imgui.new['const char*'][#tableu8](tableu8)
         end
+
+        imgui.PopStyleColor(2)
+        if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
         imgui.Hind(u8'Нажмите для удаления.')
         imgui.PopItemWidth()
+
         imgui.EndChild()
-        -- imgui.SetCursorPos(imgui.ImVec2(240, 212))
     end
     imgui.SameLine()
     if imgui.BeginChild('Symbol', imgui.ImVec2(194, 178), true) then
@@ -275,24 +308,44 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
                 ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
             end
         end
+
+        if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+        imgui.PushItemWidth(179)
+        imgui.PushStyleColor(imgui.Col.HeaderHovered, imgui.ImVec4(1, 0, 0, 0.431))
+        imgui.PushStyleColor(imgui.Col.HeaderActive, imgui.ImVec4(1, 0, 0, 0.8))
+
+        if imgui.ListBoxStr_arr('##list', selectedSymbol, ImItemsSymb, #tableu8Symb) then -- listbox
+            table.remove(tableu8Symb, selectedSymbol[0] + 1)
+            ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
+        end
+        imgui.PopStyleColor(2)
+        if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+        imgui.Hind(u8'Нажмите для удаления.')
+        imgui.PopItemWidth()
+
+        imgui.EndChild()
     end
-    imgui.PushItemWidth(179)
-    if imgui.ListBoxStr_arr('##list', selectedSymbol, ImItemsSymb, #tableu8Symb) then -- listbox
-        table.remove(tableu8Symb, selectedSymbol[0] + 1)
-        ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
-    end
-    imgui.Hind(u8'Нажмите для удаления.')
-    imgui.PopItemWidth()
-    imgui.EndChild()
+
+
     imgui.SetCursorPos(imgui.ImVec2(240, 212))
     imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(5, 7))
     if imgui.Button(u8'Прочее', imgui.ImVec2(60, 30)) then
-        imgui.OpenPopup('WidgetSettings')
+        imgui.OpenPopup('AdditionalSettings')
     end
+    if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
     imgui.SameLine()
-    if imgui.Button(u8'Сохранить и закрыть', imgui.ImVec2(331, 30)) then -- сохранение
-        Save()
+    if widgetFontSize[0] ~= Ini.Settings.WidgetFontSize then
+        if imgui.Button(u8'Сохранить и перезапустить', imgui.ImVec2(331, 30)) then
+            script.reload(thisScript())
+            Save()
+        end
+    else
+        if imgui.Button(u8'Сохранить и закрыть', imgui.ImVec2(331, 30)) then
+            SettingsMenu[0] = false
+            Save()
+        end
     end
+    if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
     imgui.PopStyleVar()
     imgui.End()
 end)
@@ -360,30 +413,30 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
 end)
 
 imgui.OnFrame(function() -- виджет
-    local reason = checkboxWidgNotOff[0] and checkboxWidg[0] or checkboxWidg[0] and checkboxEnab[0] -- если параметр 'не скрывать виджет' и сам виджет включен то показывать окно иначе если подмена включена, показать виджет 
-    return reason or replace and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function()
-    imgui.SetNextWindowPos(imgui.ImVec2(WidgetPosX, WidgetPosY), imgui.Cond.Always, imgui.ImVec2(1, 1))
-    
+    return sampIsChatInputActive() or replace or SettingsMenu[0] end, function()
     if replace then
-        imgui.GetBackgroundDrawList():AddTextFontPtr(font_alert, 50, imgui.ImVec2(Ini.Settings.PosX * 0.72, Ini.Settings.PosY), imgui.GetColorU32Vec4(imgui.ImVec4(0.796, 0.156, 0.129, 1)), u8'SPACE для сохранения')
+        imgui.GetBackgroundDrawList():AddTextFontPtr(font_alert, 50, imgui.ImVec2(Ini.Settings.PosX / 2 - 32, Ini.Settings.PosY), imgui.GetColorU32Vec4(imgui.ImVec4(0.796, 0.156, 0.129, 1)), u8'SPACE для сохранения')
+        imgui.SetMouseCursor(2)
     end
-
+        
     local colors = imgui.GetStyle().Colors
     local clr = imgui.Col
     imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(colors[clr.WindowBg].x, colors[clr.WindowBg].y, colors[clr.WindowBg].z, widgetTransparency[0]))
-    imgui.PushStyleColor(imgui.Col.Border, imgui.ImVec4(colors[clr.Border].x, colors[clr.Border].y, colors[clr.Border].z, widgetTransparency[0] - 0.6))
-    imgui.PushStyleColor(imgui.Col.Separator, imgui.ImVec4(colors[clr.Separator].x, colors[clr.Separator].y, colors[clr.Separator].z, widgetTransparency[0] - 0.5))
-
+        
+    imgui.SetNextWindowPos(imgui.ImVec2(WidgetPosX, WidgetPosY), imgui.Cond.Always, imgui.ImVec2(1, 1))
     imgui.Begin('Widget', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.AlwaysAutoResize)
-    
-    imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(8, 7))
-    imgui.CenterText('Departament')
 
-    imgui.Separator()
-    imgui.CenterText(u8:encode(GetCompletedForm()))
+    imgui.PushFont(font_widget)
+    imgui.Text(u8:encode(GetCompletedForm()))
+    imgui.SameLine()
+    if checkboxEnab[0] and not checkboxChat[0] then
+        imgui.TextColored(imgui.ImVec4(0.0, 1.0, 0.0, 1.0), u8'Включено')
+    else
+        imgui.TextColored(imgui.ImVec4(1.0, 0.0, 0.0, 1.0), u8'Выключено')
+    end
+    imgui.PopFont()
 
-    imgui.PopStyleVar()
-    imgui.PopStyleColor(3)
+    imgui.PopStyleColor()
     imgui.End()
 end).HideCursor = true
 
@@ -408,7 +461,7 @@ local firstMessage -- переменные для переноса
 local secondMessage
 local Message -- последняя отправленная строка в /d
 function sampev.onSendCommand(text)
-    if not checkboxChat[0] and checkboxEnab[0] and text:find('^/d%s+.+%s*') and Message ~= text and firstMessage ~= text and secondMessage ~= text then
+    if text:find('^/d%s+.+%s*') and not checkboxChat[0] and checkboxEnab[0] and not text:find(GetCompletedForm()) and Message ~= text and firstMessage ~= text and secondMessage ~= text then
         local dtext = text:match('^/d%s+(.+)%s*')
         Message = string.format('/d %s %s', GetCompletedForm(), dtext)
 
@@ -448,9 +501,6 @@ function main()
     sampRegisterChatCommand('depset', function()
         if radiobuttonStyle[0] == 0 then DetermineFractionColor() end
         SettingsMenu[0] = not SettingsMenu[0]
-    end)
-    sampRegisterChatCommand('depget', function()
-        sampAddChatMessage(GetCompletedForm(), -1)
     end)
 
     myname = sampGetPlayerNickname(select(2, sampGetPlayerIdByCharHandle(PLAYER_PED))) -- получения имени твоего персонажа
@@ -545,11 +595,19 @@ imgui.OnInitialize(function()
     if Ini.Settings.PosX == 0 then
         local posX, posY = getScreenResolution()
         Ini.Settings.PosX, Ini.Settings.PosY = posX/2, posY/2
-        Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY = posX * 0.1, posY * 0.7
+        local in1 = sampGetInputInfoPtr()
+        local in1 = getStructElement(in1, 0x8, 4)
+        local in2 = getStructElement(in1, 0x8, 4)
+        local in3 = getStructElement(in1, 0xC, 4)
+        local posY = in3 + 78
+        local posX = in2 + 138
+        Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY = posX, posY
         inicfg.save(Ini, "DepChannels")
     end
     WidgetPosX, WidgetPosY = Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY -- перемещение переменных в оперативную память
-    font_alert = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 50, nil, imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
+    local glass = imgui.GetIO().Fonts:GetGlyphRangesCyrillic()
+    font_alert = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 50, nil, glass)
+    font_widget = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', Ini.Settings.WidgetFontSize, nil, glass)
 
     Theme()
 
@@ -568,19 +626,19 @@ function imgui.Hind(text)
         imgui.EndTooltip()
     end
 end
--- сохранение настроек
+-- Save Settings
 function Save()
     Ini.Settings.Style = radiobuttonStyle[0]
     Ini.Settings.Command = u8:decode(ffi.string(inputCommand))
     Ini.Settings.Chat = checkboxChat[0] and true or false
     Ini.Settings.LineBreak = checkboxline[0] and true or false
     Ini.Settings.Widget = checkboxWidg[0] and true or false
-    Ini.Settings.WidgetOff = checkboxWidgNotOff[0] and true or false
     Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY = WidgetPosX, WidgetPosY
+    Ini.Settings.WidgetTransparency = widgetTransparency[0]
+    Ini.Settings.WidgetFontSize = widgetFontSize[0]
     Ini.CustomStyleBg.r, Ini.CustomStyleBg.g, Ini.CustomStyleBg.b = colorEditStyleBg[0], colorEditStyleBg[1], colorEditStyleBg[2]
     Ini.CustomStyleButton.r, Ini.CustomStyleButton.g, Ini.CustomStyleButton.b = colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2]
     Ini.CustomStyleElments.r, Ini.CustomStyleElments.g, Ini.CustomStyleElments.b = colorEditStyleElments[0], colorEditStyleElments[1], colorEditStyleElments[2]
-    Ini.Settings.WidgetTransparency = widgetTransparency[0]
     for value, _ in pairs(Ini.Channels) do -- сохранение списка тегов в Combo и Ini
         Ini.Channels[value] = nil
         tableu8Combo[value] = nil
@@ -623,7 +681,7 @@ LastActiveTime = {}
 LastActive = {}
 function imgui.ToggleButton(label, bool, distance)
     local rBool = false
-
+    
     distance = distance or 170 -- если параметр дистанции не задан, то он равен 170
 
 	local function ImSaturate(f)
@@ -668,6 +726,9 @@ function imgui.ToggleButton(label, bool, distance)
         dl:AddRect(imgui.ImVec2(p.x + distance, p.y), imgui.ImVec2(p.x + width + 10 + distance, p.y + height), col_bg, 12) -- цветной контур прямоугольника
     end
     dl:AddCircleFilled(imgui.ImVec2(p.x + radius + t * (width + 10 - radius * 2.0) + distance, p.y + radius), radius * 0.55, imgui.GetColorU32Vec4(imgui.ImVec4(1, 1, 1, 1)), 12) -- белый кружок внутри
-
+    
+    if imgui.IsItemHovered() then
+        imgui.SetMouseCursor(7) -- hand
+    end
 	return rBool
 end
