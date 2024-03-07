@@ -1,16 +1,39 @@
 script_name('Departament')
 script_author('KyRDa')
 script_description('/depset')
-script_version('3')
+script_version('version 3, pre-release 1')
 
-require 'lib.moonloader'
-local imgui = require 'mimgui'
-local encoding = require 'encoding'
+require('lib.moonloader')
+local ffi = require("ffi")
+
+ffi.cdef([[
+    typedef struct { float x, y, z; } CVector;
+    int MessageBoxA(
+        void* hWnd,
+        const char* lpText,
+        const char* lpCaption,
+        unsigned int uType
+    );
+]])
+
+req, require = require, function(str, downloadUrl) -- from https://www.blast.hk/threads/154860/
+    local result, data = pcall(req, str)
+    if not result then
+        ffi.C.MessageBoxA(ffi.cast('void*', readMemory(0x00C8CF88, 4, false)), ('Error, lib "%s" not found. Download: %s'):format(str, downloadUrl or 'ссылка не найдена', str, downloadUrl or 'ссылка не найдена'), 'Departament error', 0x50000)
+        if downloadUrl then
+            os.execute('explorer "'..downloadUrl..'"')
+        end
+        error('Lib '..str..' not found!')
+    end
+    return data
+end
+
+local imgui = require('mimgui', 'https://www.blast.hk/threads/66959/')
+local encoding = require('encoding')
 encoding.default = 'CP1251'
 local u8 = encoding.UTF8
-local inicfg = require "inicfg"
-local ffi = require "ffi"
-local sampev = require "lib.samp.events"
+local inicfg = require("inicfg")
+local sampev = require("lib.samp.events", 'https://www.blast.hk/threads/14624/')
 
 local Ini = inicfg.load({
     Settings = {
@@ -105,7 +128,7 @@ local ImItemsSymb =             imgui.new['const char*'][#tableu8Symb](tableu8Sy
 local ImItemsIniSymb =          imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb) -- массив тегов, изменяется везде
 
 imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function() -- настройки
-    imgui.SetNextWindowPos(imgui.ImVec2(Ini.Settings.PosX, Ini.Settings.PosY), imgui.Cond.FirstUseEver, imgui.ImVec2(1, 1))
+    imgui.SetNextWindowPos(imgui.ImVec2(500, 500), imgui.Cond.FirstUseEver, imgui.ImVec2(1, 1))
     imgui.Begin('Settings', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize)
 
     if imgui.BeginPopup('AdditionalSettings') then -- Настрока виджета, всплывающее окно при нажатии кнопки "Виджет"
@@ -153,28 +176,6 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
             if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
             if imgui.IsItemActive() then imgui.SetMouseCursor(4) end -- resize EW
             imgui.PopItemWidth()
-            
-            if imgui.Button(u8'Переместить виджет', imgui.ImVec2(300, 25)) then
-                lua_thread.create(function()
-                    replace = true
-                    imgui.SetNextWindowFocus()
-                    while replace do
-                        WidgetPosX, WidgetPosY = getCursorPos()
-                        if isKeyDown(0x20) then -- Space
-                            replace = false
-                            return
-                        end
-                        if isKeyDown(0x1B) then -- Space
-                            replace = false
-                            WidgetPosX, WidgetPosY = Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY
-                            return
-                        end
-                        wait(0)
-                    end
-                end)
-            end
-            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
-            imgui.Hind(u8'Space для остановки.')
         end
         imgui.EndPopup()
     end
@@ -356,7 +357,7 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     elseif not isKeyDown(32) then
         self.HideCursor = false
     end
-    imgui.SetNextWindowPos(imgui.ImVec2(Ini.Settings.PosX, Ini.Settings.PosY), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
+    imgui.SetNextWindowPos(imgui.ImVec2(500, 500), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
     imgui.Begin('Departament', MainMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.AlwaysAutoResize)
     imgui.PushItemWidth(150)
     imgui.PushStyleVarVec2(imgui.StyleVar.FramePadding, imgui.ImVec2(7, 4))
@@ -366,9 +367,6 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.SetCursorPosX(100)
     if imgui.Combo('##tag1', selectedComboTag1, ImItemsIni, #tableu8Combo, imgui.ComboFlags.HeightLargest) then
         Ini.Settings.lastChannel1 = selectedComboTag1[0] + 1
-        local pos = imgui.GetWindowPos() -- получить местонахождение окна
-        Ini.Settings.PosX, Ini.Settings.PosY = pos.x, pos.y -- сохранение позиции
-        inicfg.save(Ini, "DepChannels")
     end
 
     imgui.Text(u8'Текст между:')
@@ -376,9 +374,6 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.SetCursorPosX(100)
     if imgui.Combo('##symbolcombo', selectedComboSymbol, ImItemsIniSymb, #tableu8ComboSymb, imgui.ComboFlags.HeightLargest) then
         Ini.Settings.lastSymbol = selectedComboSymbol[0] + 1
-        local pos = imgui.GetWindowPos()
-        Ini.Settings.PosX, Ini.Settings.PosY = pos.x, pos.y
-        inicfg.save(Ini, "DepChannels")
     end
 
     imgui.Text(u8'Второй тег:')
@@ -386,15 +381,10 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.SetCursorPosX(100)
     if imgui.Combo('##tag2', selectedComboTag2, ImItemsIni, #tableu8Combo, imgui.ComboFlags.HeightLargest) then
         Ini.Settings.lastChannel2 = selectedComboTag2[0] + 1
-        local pos = imgui.GetWindowPos()
-        Ini.Settings.PosX, Ini.Settings.PosY = pos.x, pos.y
-        inicfg.save(Ini, "DepChannels")
     end
+
     if checkboxChat[0] then
         if imgui.Button(u8'Ввести в чат', imgui.ImVec2(244, 26)) then
-            local pos = imgui.GetWindowPos()
-            Ini.Settings.PosX, Ini.Settings.PosY = pos.x, pos.y
-            inicfg.save(Ini, "DepChannels")
             sampSetChatInputEnabled(true) -- открытие чата
             sampSetChatInputText('/d '..GetCompletedForm())
         end
@@ -413,27 +403,37 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
 end)
 
 imgui.OnFrame(function() -- виджет
-    return sampIsChatInputActive() or replace or SettingsMenu[0] end, function()
-    if replace then
-        imgui.GetBackgroundDrawList():AddTextFontPtr(font_alert, 50, imgui.ImVec2(Ini.Settings.PosX / 2 - 32, Ini.Settings.PosY), imgui.GetColorU32Vec4(imgui.ImVec4(0.796, 0.156, 0.129, 1)), u8'SPACE для сохранения')
-        imgui.SetMouseCursor(2)
-    end
+    return sampIsChatInputActive() or SettingsMenu[0] end, function()
         
     local colors = imgui.GetStyle().Colors
     local clr = imgui.Col
     imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(colors[clr.WindowBg].x, colors[clr.WindowBg].y, colors[clr.WindowBg].z, widgetTransparency[0]))
-        
-    imgui.SetNextWindowPos(imgui.ImVec2(WidgetPosX, WidgetPosY), imgui.Cond.Always, imgui.ImVec2(1, 1))
-    imgui.Begin('Widget', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.AlwaysAutoResize)
+
+    function GetChatPosition() -- one time
+        local in1 = sampGetInputInfoPtr()
+        local in1 = getStructElement(in1, 0x8, 4)
+        local in2 = getStructElement(in1, 0x8, 4)
+        local in3 = getStructElement(in1, 0xC, 4)
+
+        local posX = in2 + 154
+        local posY = in3 + 78
+
+        return posX, posY
+    end
+
+    imgui.SetNextWindowPos(imgui.ImVec2(GetChatPosition()), imgui.Cond.FirstUseEver, imgui.ImVec2(1, 1))--imgui.Cond.FirstUseEver
+    imgui.Begin('Widget', SettingsMenu, imgui.WindowFlags.NoTitleBar + imgui.WindowFlags.AlwaysAutoResize)
+
 
     imgui.PushFont(font_widget)
-    imgui.Text(u8:encode(GetCompletedForm()))
-    imgui.SameLine()
     if checkboxEnab[0] and not checkboxChat[0] then
         imgui.TextColored(imgui.ImVec4(0.0, 1.0, 0.0, 1.0), u8'Включено')
     else
         imgui.TextColored(imgui.ImVec4(1.0, 0.0, 0.0, 1.0), u8'Выключено')
     end
+    imgui.SameLine()
+    
+    imgui.Text(u8:encode(GetCompletedForm()))
     imgui.PopFont()
 
     imgui.PopStyleColor()
@@ -591,26 +591,9 @@ styles = {
 }
 
 imgui.OnInitialize(function()
-    imgui.GetIO().IniFilename = nil
-    if Ini.Settings.PosX == 0 then
-        local posX, posY = getScreenResolution()
-        Ini.Settings.PosX, Ini.Settings.PosY = posX/2, posY/2
-        local in1 = sampGetInputInfoPtr()
-        local in1 = getStructElement(in1, 0x8, 4)
-        local in2 = getStructElement(in1, 0x8, 4)
-        local in3 = getStructElement(in1, 0xC, 4)
-        local posY = in3 + 78
-        local posX = in2 + 138
-        Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY = posX, posY
-        inicfg.save(Ini, "DepChannels")
-    end
-    WidgetPosX, WidgetPosY = Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY -- перемещение переменных в оперативную память
-    local glass = imgui.GetIO().Fonts:GetGlyphRangesCyrillic()
-    font_alert = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', 50, nil, glass)
-    font_widget = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', Ini.Settings.WidgetFontSize, nil, glass)
-
     Theme()
-
+    
+    font_widget = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', Ini.Settings.WidgetFontSize, nil, imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
     imgui.Loaded = true
 end)
 -- Выравнивание текста
@@ -633,7 +616,6 @@ function Save()
     Ini.Settings.Chat = checkboxChat[0] and true or false
     Ini.Settings.LineBreak = checkboxline[0] and true or false
     Ini.Settings.Widget = checkboxWidg[0] and true or false
-    Ini.Settings.WidgetPosX, Ini.Settings.WidgetPosY = WidgetPosX, WidgetPosY
     Ini.Settings.WidgetTransparency = widgetTransparency[0]
     Ini.Settings.WidgetFontSize = widgetFontSize[0]
     Ini.CustomStyleBg.r, Ini.CustomStyleBg.g, Ini.CustomStyleBg.b = colorEditStyleBg[0], colorEditStyleBg[1], colorEditStyleBg[2]
