@@ -84,20 +84,21 @@ local Ini = inicfg.load({
 }, "DepChannels")
 inicfg.save(Ini, "DepChannels")
 
-local tableu8 = {} -- загрузка таблиц тегов
-local tableu8Combo = {}
+local tableu8ListTags = {} -- загрузка таблиц тегов
+local tableu8ModifiedListTags = {}
 for _, value in ipairs(Ini.Channels) do
-    table.insert(tableu8, u8(value))
-    table.insert(tableu8Combo, u8(value))
-end
-local tableu8Symb = {} -- загрузка таблиц текста между тегов
-local tableu8ComboSymb = {}
-for _, value in ipairs(Ini.Symbols) do
-    table.insert(tableu8Symb, u8(value))
-    table.insert(tableu8ComboSymb, u8(value))
+    table.insert(tableu8ListTags, u8(value))
+    table.insert(tableu8ModifiedListTags, u8(value))
 end
 
-local MainMenu, SettingsMenu =  imgui.new.bool(), imgui.new.bool() -- для открытия/закрытия окон
+local tableu8ListWaves = {} -- загрузка таблиц текста между тегов
+local tableu8ModifiedListWaves = {}
+for _, value in ipairs(Ini.Symbols) do
+    table.insert(tableu8ListWaves, u8(value))
+    table.insert(tableu8ModifiedListWaves, u8(value))
+end
+
+local MainMenu, SettingsMenu =  imgui.new.bool(), imgui.new.bool() -- окона
 
 local inputCommand =            imgui.new.char[64](u8:encode(Ini.Settings.Command)) -- изменение команды активации
 local inputForm =               imgui.new.char[64](u8:encode(Ini.Settings.Form)) -- форма (конструкция) постановки
@@ -122,68 +123,15 @@ local colorEditStyleElments =   imgui.new.float[3](Ini.CustomStyleElments.r, Ini
 local widgetTransparency =      imgui.new.float[1](Ini.Settings.WidgetTransparency) -- выбор прозрачности она виджета
 local widgetFontSize =          imgui.new.float[1](Ini.Settings.WidgetFontSize) -- выбор прозрачности она виджета
 
-local ImItems =                 imgui.new['const char*'][#tableu8](tableu8) -- массив тегов, изменяется только в настройке
-local ImItemsIni =              imgui.new['const char*'][#tableu8Combo](tableu8Combo) -- массив тегов, изменяется везде
-local ImItemsSymb =             imgui.new['const char*'][#tableu8Symb](tableu8Symb) -- массив символов между, изменяется только в настройке
-local ImItemsIniSymb =          imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb) -- массив тегов, изменяется везде
+local ListTags =                imgui.new['const char*'][#tableu8ListTags](tableu8ListTags) -- массив тегов, изменяется только в настройке
+local ModifiedListTags =        imgui.new['const char*'][#tableu8ModifiedListTags](tableu8ModifiedListTags) -- массив тегов, изменяется везде
+local ListWaves =               imgui.new['const char*'][#tableu8ListWaves](tableu8ListWaves) -- массив символов между, изменяется только в настройке
+local ModifiedListWaves =       imgui.new['const char*'][#tableu8ModifiedListWaves](tableu8ModifiedListWaves) -- массив тегов, изменяется везде
 
 imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function() -- настройки
     imgui.SetNextWindowPos(imgui.ImVec2(500, 500), imgui.Cond.FirstUseEver, imgui.ImVec2(1, 1))
     imgui.Begin('Settings', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize)
-
-    if imgui.BeginPopup('AdditionalSettings') then -- Настрока виджета, всплывающее окно при нажатии кнопки "Виджет"
-        imgui.Text(u8'Команда активации:')
-        imgui.SameLine()
-
-        imgui.PushItemWidth(135)
-        imgui.SetCursorPos(imgui.ImVec2(135, 6))
-        imgui.InputText('##inputcommand', inputCommand, 32)
-        imgui.Hind(u8"Введите сюда жалемую команду без '/' для вывода главного меню.")
-        imgui.PopItemWidth()
-
-        imgui.ToggleButton(u8'Кнопка ввода в чат', checkboxChat, 222)
-        if imgui.IsItemHovered() then
-            imgui.BeginTooltip()
-            imgui.Text(u8'При включении этого параметра скрипт не будет автоматически подставлять теги под\nсообщения в чат департамента, а в главном меню появится кнопка "Ввести в чат".')
-            imgui.TextColored(imgui.ImVec4(1.0, 0.0, 0.0, 1.0 ), u8'ВНИМАНИЕ: Перенос строки не будет работать.')
-            imgui.EndTooltip()
-        end
-
-        -- Style Editor
-        imgui.Spacing()
-        for i = 0, 1 do
-            imgui.SameLine()
-            if imgui.RadioButtonIntPtr(styles[i].name, radiobuttonStyle, i) then
-                radiobuttonStyle[0] = i
-                styles[i].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1))
-            end
-            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
-        end
-
-        if radiobuttonStyle[0] == 1 then
-            imgui.SetCursorPosX(47)
-            imgui.PushItemWidth(20)
-            if imgui.ColorEdit3(u8'Фон', colorEditStyleBg, imgui.ColorEditFlags.NoInputs) then
-                styles[1].func()
-            end
-            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
-            imgui.SameLine()
-            if imgui.ColorEdit3(u8'Кнопки', colorEditStyleButton, imgui.ColorEditFlags.NoInputs) then
-                styles[1].func()
-            end
-            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
-            imgui.SameLine()
-            if imgui.ColorEdit3(u8'Элементы', colorEditStyleElments, imgui.ColorEditFlags.NoInputs) then
-                styles[1].func()
-            end
-            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
-
-            imgui.PopItemWidth()
-        end
-        imgui.EndPopup()
-    end
     
-    -- main
     if imgui.BeginChild('MainSettings', imgui.ImVec2(225, 213), true, imgui.WindowFlags.AlwaysAutoResize) then
         imgui.Text(u8'Форма:\n'..Ini.Settings.Form)
         imgui.SameLine()
@@ -192,10 +140,8 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         if imgui.Button(u8'Изменить', imgui.ImVec2(80, 30)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
             imgui.OpenPopup('FormSetting')
         end
-        if imgui.IsItemHovered() then
-            imgui.SetMouseCursor(7) -- hand
-        end
-
+        if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+        
         if imgui.BeginPopupModal('FormSetting', _, imgui.WindowFlags.AlwaysAutoResize + imgui.WindowFlags.NoCollapse) then
             function imgui.PopupCenterText(text)
                 imgui.SetCursorPosX(imgui.GetWindowWidth()-imgui.CalcTextSize(text).x/2 - 345)
@@ -262,6 +208,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
 
         imgui.EndChild()
     end
+
     imgui.SameLine()
     if imgui.BeginChild('Channels', imgui.ImVec2(194, 178), true) then -- список тегов
         imgui.PushItemWidth(107)
@@ -270,7 +217,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.SameLine()
         if imgui.Button(u8'Добавить') then -- добавить новый тег
             local v
-            for _, value in ipairs(tableu8) do -- защита от повтора тегов
+            for _, value in ipairs(tableu8ListTags) do -- защита от повтора тегов
                 if value == ffi.string(inputChannels) then
                     sampAddChatMessage('{cb2821}[Departament]:{FFFFFF} Элемент в списке с таким названием уже существует!', -1)
                     v = value
@@ -278,8 +225,8 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
                 end
             end
             if v ~= ffi.string(inputChannels) then
-                table.insert(tableu8, u8(u8:decode(ffi.string(inputChannels))))
-                ImItems = imgui.new['const char*'][#tableu8](tableu8)
+                table.insert(tableu8ListTags, u8(u8:decode(ffi.string(inputChannels))))
+                ListTags = imgui.new['const char*'][#tableu8ListTags](tableu8ListTags)
             end
         end
         if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
@@ -288,9 +235,9 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.PushStyleColor(imgui.Col.HeaderActive, imgui.ImVec4(1, 0, 0, 0.8))
         imgui.PushItemWidth(179)
 
-        if imgui.ListBoxStr_arr('##list', selectedChannel, ImItems, #tableu8) then -- listbox
-            table.remove(tableu8, selectedChannel[0] + 1)
-            ImItems = imgui.new['const char*'][#tableu8](tableu8)
+        if imgui.ListBoxStr_arr('##list', selectedChannel, ListTags, #tableu8ListTags) then -- listbox
+            table.remove(tableu8ListTags, selectedChannel[0] + 1)
+            ListTags = imgui.new['const char*'][#tableu8ListTags](tableu8ListTags)
         end
 
         imgui.PopStyleColor(2)
@@ -300,6 +247,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
 
         imgui.EndChild()
     end
+
     imgui.SameLine()
     if imgui.BeginChild('Symbol', imgui.ImVec2(194, 178), true) then
         imgui.PushItemWidth(107)
@@ -308,7 +256,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.SameLine()
         if imgui.Button(u8'Добавить') then -- добавить новый тег
             local v
-            for _, value in ipairs(tableu8Symb) do -- защита от повтора тегов
+            for _, value in ipairs(tableu8ListWaves) do -- защита от повтора тегов
                 if value == ffi.string(inputSymbol) then
                     sampAddChatMessage('{cb2821}[Departament]:{FFFFFF} Элемент в списке с таким названием уже существует!', -1)
                     v = value
@@ -316,8 +264,8 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
                 end
             end
             if v ~= ffi.string(inputSymbol) then
-                table.insert(tableu8Symb, ffi.string(inputSymbol))
-                ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
+                table.insert(tableu8ListWaves, ffi.string(inputSymbol))
+                ListWaves = imgui.new['const char*'][#tableu8ListWaves](tableu8ListWaves)
             end
         end
 
@@ -326,9 +274,9 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.PushStyleColor(imgui.Col.HeaderHovered, imgui.ImVec4(1, 0, 0, 0.431))
         imgui.PushStyleColor(imgui.Col.HeaderActive, imgui.ImVec4(1, 0, 0, 0.8))
 
-        if imgui.ListBoxStr_arr('##list', selectedSymbol, ImItemsSymb, #tableu8Symb) then -- listbox
-            table.remove(tableu8Symb, selectedSymbol[0] + 1)
-            ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
+        if imgui.ListBoxStr_arr('##list', selectedSymbol, ListWaves, #tableu8ListWaves) then -- listbox
+            table.remove(tableu8ListWaves, selectedSymbol[0] + 1)
+            ListWaves = imgui.new['const char*'][#tableu8ListWaves](tableu8ListWaves)
         end
         imgui.PopStyleColor(2)
         if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
@@ -338,6 +286,57 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.EndChild()
     end
 
+    if imgui.BeginPopup('AdditionalSettings') then -- Настрока виджета, всплывающее окно при нажатии кнопки "Виджет"
+        imgui.Text(u8'Команда активации:')
+        imgui.SameLine()
+
+        imgui.PushItemWidth(135)
+        imgui.SetCursorPos(imgui.ImVec2(135, 6))
+        imgui.InputText('##inputcommand', inputCommand, 32)
+        imgui.Hind(u8"Введите сюда жалемую команду без '/' для вывода главного меню.")
+        imgui.PopItemWidth()
+
+        imgui.ToggleButton(u8'Кнопка ввода в чат', checkboxChat, 222)
+        if imgui.IsItemHovered() then
+            imgui.BeginTooltip()
+            imgui.Text(u8'При включении этого параметра скрипт не будет автоматически подставлять теги под\nсообщения в чат департамента, а в главном меню появится кнопка "Ввести в чат".')
+            imgui.TextColored(imgui.ImVec4(1.0, 0.0, 0.0, 1.0 ), u8'ВНИМАНИЕ: Перенос строки не будет работать.')
+            imgui.EndTooltip()
+        end
+
+        -- Style Editor
+        imgui.Spacing()
+        for i = 0, 1 do
+            imgui.SameLine()
+            if imgui.RadioButtonIntPtr(styles[i].name, radiobuttonStyle, i) then
+                radiobuttonStyle[0] = i
+                styles[i].func(imgui.ImVec4(Ini.FractionColor.r, Ini.FractionColor.g, Ini.FractionColor.b, 1))
+            end
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+        end
+
+        if radiobuttonStyle[0] == 1 then
+            imgui.SetCursorPosX(47)
+            imgui.PushItemWidth(20)
+            if imgui.ColorEdit3(u8'Фон', colorEditStyleBg, imgui.ColorEditFlags.NoInputs) then
+                styles[1].func()
+            end
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+            imgui.SameLine()
+            if imgui.ColorEdit3(u8'Кнопки', colorEditStyleButton, imgui.ColorEditFlags.NoInputs) then
+                styles[1].func()
+            end
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+            imgui.SameLine()
+            if imgui.ColorEdit3(u8'Элементы', colorEditStyleElments, imgui.ColorEditFlags.NoInputs) then
+                styles[1].func()
+            end
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+
+            imgui.PopItemWidth()
+        end
+        imgui.EndPopup()
+    end
 
     imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(5, 7))
     
@@ -366,9 +365,9 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
 end)
 
 imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not sampIsScoreboardOpen() end, function(self) -- главное меню
-    if isKeyDown(32) and self.HideCursor == false then -- скрыть курсор если нажат пробел
+    if isKeyDown(32) and self.HideCursor == false then -- Space, скрыть курсор если нажат пробел
         self.HideCursor = true
-    elseif not isKeyDown(32) then
+    elseif not isKeyDown(32) then -- Space
         self.HideCursor = false
     end
 
@@ -381,21 +380,21 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.Text(u8'Первый тег:')
     imgui.SameLine()
     imgui.SetCursorPosX(100)
-    if imgui.Combo('##tag1', selectedComboTag1, ImItemsIni, #tableu8Combo, imgui.ComboFlags.HeightLargest) then
+    if imgui.Combo('##tag1', selectedComboTag1, ModifiedListTags, #tableu8ModifiedListTags, imgui.ComboFlags.HeightLargest) then
         Ini.Settings.lastChannel1 = selectedComboTag1[0] + 1
     end
 
     imgui.Text(u8'Волна:')
     imgui.SameLine()
     imgui.SetCursorPosX(100)
-    if imgui.Combo('##symbolcombo', selectedComboSymbol, ImItemsIniSymb, #tableu8ComboSymb, imgui.ComboFlags.HeightLargest) then
+    if imgui.Combo('##symbolcombo', selectedComboSymbol, ModifiedListWaves, #tableu8ModifiedListWaves, imgui.ComboFlags.HeightLargest) then
         Ini.Settings.lastSymbol = selectedComboSymbol[0] + 1
     end
 
     imgui.Text(u8'Второй тег:')
     imgui.SameLine()
     imgui.SetCursorPosX(100)
-    if imgui.Combo('##tag2', selectedComboTag2, ImItemsIni, #tableu8Combo, imgui.ComboFlags.HeightLargest) then
+    if imgui.Combo('##tag2', selectedComboTag2, ModifiedListTags, #tableu8ModifiedListTags, imgui.ComboFlags.HeightLargest) then
         Ini.Settings.lastChannel2 = selectedComboTag2[0] + 1
     end
 
@@ -539,50 +538,55 @@ function DetermineFractionColor()
 end
 
 function Save() -- Save Settings
-    Ini.Settings.Style = radiobuttonStyle[0]
     Ini.Settings.Command = u8:decode(ffi.string(inputCommand))
+    sampRegisterChatCommand(Ini.Settings.Command, function() MainMenu[0] = not MainMenu[0] end) -- регистрация новой команды заданной в input
+
     Ini.Settings.Chat = checkboxChat[0] and true or false
     Ini.Settings.LineBreak = checkboxline[0] and true or false
+    
     Ini.Settings.Widget = checkboxWidg[0] and true or false
     Ini.Settings.WidgetTransparency = widgetTransparency[0]
     Ini.Settings.WidgetFontSize = tonumber(string.format('%.3f', widgetFontSize[0]))
+    
+    Ini.Settings.Style = radiobuttonStyle[0]
     Ini.CustomStyleBg.r, Ini.CustomStyleBg.g, Ini.CustomStyleBg.b = colorEditStyleBg[0], colorEditStyleBg[1], colorEditStyleBg[2]
     Ini.CustomStyleButton.r, Ini.CustomStyleButton.g, Ini.CustomStyleButton.b = colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2]
     Ini.CustomStyleElments.r, Ini.CustomStyleElments.g, Ini.CustomStyleElments.b = colorEditStyleElments[0], colorEditStyleElments[1], colorEditStyleElments[2]
+
     for value, _ in pairs(Ini.Channels) do -- сохранение списка тегов в Combo и Ini
         Ini.Channels[value] = nil
-        tableu8Combo[value] = nil
+        tableu8ModifiedListTags[value] = nil
     end
-    for _, value in ipairs(tableu8) do
+    for _, value in ipairs(tableu8ListTags) do
         table.insert(Ini.Channels, u8:decode(ffi.string(value)))
-        table.insert(tableu8Combo, value)
+        table.insert(tableu8ModifiedListTags, value)
     end
-    if rawequal(next(tableu8), nil) then -- Если талица пуста, то
+    if rawequal(next(tableu8ListTags), nil) then -- Если талица пуста, то
         sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Нельзя сохранять пустой список!", -1)
         table.insert(Ini.Channels, u8'Всем')
-        table.insert(tableu8Combo, u8'Всем')
-        table.insert(tableu8, u8'Всем')
-        ImItems = imgui.new['const char*'][#tableu8](tableu8)
+        table.insert(tableu8ModifiedListTags, u8'Всем')
+        table.insert(tableu8ListTags, u8'Всем')
+        ListTags = imgui.new['const char*'][#tableu8ListTags](tableu8ListTags)
     end
-    ImItemsIni = imgui.new['const char*'][#tableu8Combo](tableu8Combo)
-    sampRegisterChatCommand(Ini.Settings.Command, function() MainMenu[0] = not MainMenu[0] end) -- регестрация новой команды заданной в input
+    ModifiedListTags = imgui.new['const char*'][#tableu8ModifiedListTags](tableu8ModifiedListTags)
+
      -- сохранения списка текста между
     for value, _ in pairs(Ini.Symbols) do -- сохранение списка текста между тегов в Combo и Ini
         Ini.Symbols[value] = nil
-        tableu8ComboSymb[value] = nil
+        tableu8ModifiedListWaves[value] = nil
     end
-    for _, value in ipairs(tableu8Symb) do
+    for _, value in ipairs(tableu8ListWaves) do
         table.insert(Ini.Symbols, u8:decode(ffi.string(value)))
-        table.insert(tableu8ComboSymb, value)
+        table.insert(tableu8ModifiedListWaves, value)
     end
-    if rawequal(next(tableu8Symb), nil) then -- Если талица пуста, то
+    if rawequal(next(tableu8ListWaves), nil) then -- Если талица пуста, то
         sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Нельзя сохранять пустой список!", -1)
         table.insert(Ini.Symbols, '-')
-        table.insert(tableu8ComboSymb, '-')
-        table.insert(tableu8Symb, '-')
-        ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
+        table.insert(tableu8ModifiedListWaves, '-')
+        table.insert(tableu8ListWaves, '-')
+        ListWaves = imgui.new['const char*'][#tableu8ListWaves](tableu8ListWaves)
     end
-    ImItemsIniSymb = imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb)
+    ModifiedListWaves = imgui.new['const char*'][#tableu8ModifiedListWaves](tableu8ModifiedListWaves)
 
     inicfg.save(Ini, "DepChannels")
 end
