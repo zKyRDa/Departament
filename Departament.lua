@@ -433,7 +433,7 @@ imgui.OnFrame(function() return Ini.Settings.Widget and sampIsChatInputActive() 
         local in2 = getStructElement(in1, 0x8, 4)
         local in3 = getStructElement(in1, 0xC, 4)
 
-        local posX = in2 + 154
+        local posX = in2 + 180
         local posY = in3 + 78
 
         return posX, posY
@@ -782,19 +782,19 @@ function imgui.Combo(label, v, array, widget)
         end
 
         local result = imgui.CalcTextSize(boldLine).x
-        result = imgui.CalcTextSize(boldLine).x < 15 and result * 3.5 or result
+        result = imgui.CalcTextSize(boldLine).x < 30 and 30 or result
 
         return result
-    end
-
-    if widget then
-        imgui.PushStyleColor(imgui.Col.FrameBg, imgui.ImVec4(0,0,0,0))
-        imgui.PushStyleColor(imgui.Col.Button, imgui.ImVec4(0,0,0,0))
     end
 
     
     if not widget then imgui.SetCursorPosX(imgui.GetWindowWidth() - max(array) * 2.1 - 8) end
     imgui.PushItemWidth(max(array) * 2.1)
+
+    if widget then
+        imgui.PushStyleColor(imgui.Col.FrameBg, imgui.ImVec4(0,0,0,0))
+        imgui.PushStyleColor(imgui.Col.Button, imgui.ImVec4(0,0,0,0))
+    end
     
     if imgui.BeginCombo(label, array[v[0]]) then
         for value, text in pairs(array) do
