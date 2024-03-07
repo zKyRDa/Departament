@@ -1,7 +1,7 @@
 script_name('Departament')
 script_author('KyRDa')
 script_description('/depset')
-script_version('version 3, pre-release 1')
+script_version('3.0.0')
 
 require('lib.moonloader')
 local ffi = require("ffi")
