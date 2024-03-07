@@ -132,6 +132,25 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
     imgui.Begin('Settings', SettingsMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.NoFocusOnAppearing + imgui.WindowFlags.NoCollapse + imgui.WindowFlags.AlwaysAutoResize)
 
     if imgui.BeginPopup('AdditionalSettings') then -- Настрока виджета, всплывающее окно при нажатии кнопки "Виджет"
+        imgui.Text(u8'Команда активации:')
+        imgui.SameLine()
+
+        imgui.PushItemWidth(135)
+        imgui.SetCursorPos(imgui.ImVec2(135, 6))
+        imgui.InputText('##inputcommand', inputCommand, 32)
+        imgui.Hind(u8"Введите сюда жалемую команду без '/' для вывода главного меню.")
+        imgui.PopItemWidth()
+
+        imgui.ToggleButton(u8'Кнопка ввода в чат', checkboxChat, 222)
+        if imgui.IsItemHovered() then
+            imgui.BeginTooltip()
+            imgui.Text(u8'При включении этого параметра скрипт не будет автоматически подставлять теги под\nсообщения в чат департамента, а в главном меню появится кнопка "Ввести в чат".')
+            imgui.TextColored(imgui.ImVec4(1.0, 0.0, 0.0, 1.0 ), u8'ВНИМАНИЕ: Перенос строки не будет работать.')
+            imgui.EndTooltip()
+        end
+
+        -- Style Editor
+        imgui.Spacing()
         for i = 0, 1 do
             imgui.SameLine()
             if imgui.RadioButtonIntPtr(styles[i].name, radiobuttonStyle, i) then
@@ -140,6 +159,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
             end
             if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
         end
+
         if radiobuttonStyle[0] == 1 then
             imgui.SetCursorPosX(47)
             imgui.PushItemWidth(20)
@@ -157,49 +177,17 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
                 styles[1].func()
             end
             if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
-            imgui.PopItemWidth()
-        end
-        imgui.ToggleButton(u8'Виджет', checkboxWidg, 260)
-        imgui.Hind(u8'При открытии чата, включает виджет где виден канал, к которому подключены.')
-        if checkboxWidg[0] then -- если виджет включен
-            imgui.PushItemWidth(127)
-            imgui.Text(u8'Размер текста виджета')
-            imgui.SameLine()
-            imgui.SetCursorPosX(182)
-            imgui.DragFloat("##widgetFontSize", widgetFontSize, 0.05, 0, 100, "%.3f", 1)
-            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
-            if imgui.IsItemActive() then imgui.SetMouseCursor(4) end -- resize EW
-            
-            imgui.Text(u8'Прозрачность окна виджета')
-            imgui.SameLine()
-            imgui.DragFloat("##widgetTransparency", widgetTransparency, 0.005, 0, 1, "%.3f", 1)
-            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
-            if imgui.IsItemActive() then imgui.SetMouseCursor(4) end -- resize EW
+
             imgui.PopItemWidth()
         end
         imgui.EndPopup()
     end
     
     -- main
-    if imgui.BeginChild('MainSettings', imgui.ImVec2(225, 213), true, imgui.WindowFlags.NoScrollbar) then
-        imgui.Text(u8'Команда активации:')
-        imgui.SameLine()
-        imgui.PushItemWidth(74)
-        imgui.SetCursorPosX(145)
-        imgui.InputText('##inputcommand', inputCommand, 32)
-        imgui.Hind(u8"Введите сюда жалемую команду без '/' для вывода главного меню.")
-        imgui.PopItemWidth()
-        imgui.ToggleButton(u8'Кнопка ввода в чат', checkboxChat)
-        if imgui.IsItemHovered() then
-            imgui.BeginTooltip()
-            imgui.Text(u8'При включении этого параметра скрипт не будет автоматически подставлять теги под\nсообщения в чат департамента, а в главном меню появится кнопка "Ввести в чат".')
-            imgui.TextColored(imgui.ImVec4(1.0, 0.0, 0.0, 1.0 ), u8'ВНИМАНИЕ: Перенос строки не будет работать.')
-            imgui.EndTooltip()
-        end
-        
-        imgui.Separator()
+    if imgui.BeginChild('MainSettings', imgui.ImVec2(225, 213), true, imgui.WindowFlags.AlwaysAutoResize) then
         imgui.Text(u8'Форма:\n'..Ini.Settings.Form)
         imgui.SameLine()
+
         imgui.SetCursorPosX(140)
         if imgui.Button(u8'Изменить', imgui.ImVec2(80, 30)) then -- обязательно создавайте такую кнопку, чтобы была возможность закрыть окно
             imgui.OpenPopup('FormSetting')
@@ -236,8 +224,8 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
             if imgui.BeginChild('form_description', imgui.ImVec2(200, -1), true) then
                 imgui.Spacing()
                 imgui.CenterText(u8'Примечание:')
-                imgui.CenterText(u8'#1 — первый выбранный тэг')
-                imgui.CenterText(u8'#2 — второй выбранный тэг')
+                imgui.CenterText(u8'#1 — первый выбранный тег')
+                imgui.CenterText(u8'#2 — второй выбранный тег')
                 imgui.CenterText(u8'$ — волна')
                 imgui.EndChild()
             end
@@ -246,9 +234,32 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         end
 
         imgui.Separator()
+        imgui.ToggleButton(u8'Виджет', checkboxWidg)
+        imgui.Hind(u8'При открытии чата, включает виджет где виден канал, к которому подключены.')
+
+        if checkboxWidg[0] then -- если виджет включен
+            imgui.PushItemWidth(88)
+
+            imgui.Text(u8'Размер текста:')
+            imgui.SameLine()
+            imgui.SetCursorPosX(132)
+            imgui.DragFloat("##widgetFontSize", widgetFontSize, 0.05, 0, 100, "%.3f", 1)
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+            if imgui.IsItemActive() then imgui.SetMouseCursor(4) end -- resize EW
+            
+            imgui.Text(u8'Прозрачность окна:')
+            imgui.SameLine()
+            imgui.DragFloat("##widgetTransparency", widgetTransparency, 0.005, 0, 1, "%.3f", 1)
+            if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+            if imgui.IsItemActive() then imgui.SetMouseCursor(4) end -- resize EW
+
+            imgui.PopItemWidth()
+        end
+
+        imgui.Separator()
         imgui.ToggleButton(u8'Перенос сообщения /d', checkboxline)
         imgui.Hind(u8"При включении этого параметра все сообщения /d будут обрабатываться.\nКогда вы напишите сообщение, непомещающаеся в одно строку, скрипт перенесёт его.")
-        
+
         imgui.EndChild()
     end
     imgui.SameLine()
@@ -328,14 +339,16 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
     end
 
 
-    imgui.SetCursorPos(imgui.ImVec2(240, 212))
     imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(5, 7))
+    
+    imgui.SetCursorPos(imgui.ImVec2(240, 212))
     if imgui.Button(u8'Прочее', imgui.ImVec2(60, 30)) then
         imgui.OpenPopup('AdditionalSettings')
     end
     if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+
     imgui.SameLine()
-    if widgetFontSize[0] ~= Ini.Settings.WidgetFontSize then
+    if tonumber(string.format('%.3f', widgetFontSize[0])) ~= Ini.Settings.WidgetFontSize then
         if imgui.Button(u8'Сохранить и перезапустить', imgui.ImVec2(331, 30)) then
             script.reload(thisScript())
             Save()
@@ -347,6 +360,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         end
     end
     if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
+
     imgui.PopStyleVar()
     imgui.End()
 end)
@@ -357,11 +371,13 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     elseif not isKeyDown(32) then
         self.HideCursor = false
     end
+
     imgui.SetNextWindowPos(imgui.ImVec2(500, 500), imgui.Cond.FirstUseEver, imgui.ImVec2(0.5, 0.5))
     imgui.Begin('Departament', MainMenu, imgui.WindowFlags.NoResize + imgui.WindowFlags.AlwaysAutoResize)
     imgui.PushItemWidth(150)
     imgui.PushStyleVarVec2(imgui.StyleVar.FramePadding, imgui.ImVec2(7, 4))
     imgui.PushStyleVarVec2(imgui.StyleVar.ItemSpacing, imgui.ImVec2(8, 8))
+    
     imgui.Text(u8'Первый тег:')
     imgui.SameLine()
     imgui.SetCursorPosX(100)
@@ -369,7 +385,7 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
         Ini.Settings.lastChannel1 = selectedComboTag1[0] + 1
     end
 
-    imgui.Text(u8'Текст между:')
+    imgui.Text(u8'Волна:')
     imgui.SameLine()
     imgui.SetCursorPosX(100)
     if imgui.Combo('##symbolcombo', selectedComboSymbol, ImItemsIniSymb, #tableu8ComboSymb, imgui.ComboFlags.HeightLargest) then
@@ -389,7 +405,7 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
             sampSetChatInputText('/d '..GetCompletedForm())
         end
     else
-        if imgui.ToggleButton(u8'Включить подмену', checkboxEnab, 195) then
+        if imgui.ToggleButton(u8'Автоподстановка', checkboxEnab, 195) then
             Ini.Settings.Enable = checkboxEnab[0]
             inicfg.save(Ini, "DepChannels")
         end
@@ -522,6 +538,55 @@ function DetermineFractionColor()
     end
 end
 
+function Save() -- Save Settings
+    Ini.Settings.Style = radiobuttonStyle[0]
+    Ini.Settings.Command = u8:decode(ffi.string(inputCommand))
+    Ini.Settings.Chat = checkboxChat[0] and true or false
+    Ini.Settings.LineBreak = checkboxline[0] and true or false
+    Ini.Settings.Widget = checkboxWidg[0] and true or false
+    Ini.Settings.WidgetTransparency = widgetTransparency[0]
+    Ini.Settings.WidgetFontSize = tonumber(string.format('%.3f', widgetFontSize[0]))
+    Ini.CustomStyleBg.r, Ini.CustomStyleBg.g, Ini.CustomStyleBg.b = colorEditStyleBg[0], colorEditStyleBg[1], colorEditStyleBg[2]
+    Ini.CustomStyleButton.r, Ini.CustomStyleButton.g, Ini.CustomStyleButton.b = colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2]
+    Ini.CustomStyleElments.r, Ini.CustomStyleElments.g, Ini.CustomStyleElments.b = colorEditStyleElments[0], colorEditStyleElments[1], colorEditStyleElments[2]
+    for value, _ in pairs(Ini.Channels) do -- сохранение списка тегов в Combo и Ini
+        Ini.Channels[value] = nil
+        tableu8Combo[value] = nil
+    end
+    for _, value in ipairs(tableu8) do
+        table.insert(Ini.Channels, u8:decode(ffi.string(value)))
+        table.insert(tableu8Combo, value)
+    end
+    if rawequal(next(tableu8), nil) then -- Если талица пуста, то
+        sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Нельзя сохранять пустой список!", -1)
+        table.insert(Ini.Channels, u8'Всем')
+        table.insert(tableu8Combo, u8'Всем')
+        table.insert(tableu8, u8'Всем')
+        ImItems = imgui.new['const char*'][#tableu8](tableu8)
+    end
+    ImItemsIni = imgui.new['const char*'][#tableu8Combo](tableu8Combo)
+    sampRegisterChatCommand(Ini.Settings.Command, function() MainMenu[0] = not MainMenu[0] end) -- регестрация новой команды заданной в input
+     -- сохранения списка текста между
+    for value, _ in pairs(Ini.Symbols) do -- сохранение списка текста между тегов в Combo и Ini
+        Ini.Symbols[value] = nil
+        tableu8ComboSymb[value] = nil
+    end
+    for _, value in ipairs(tableu8Symb) do
+        table.insert(Ini.Symbols, u8:decode(ffi.string(value)))
+        table.insert(tableu8ComboSymb, value)
+    end
+    if rawequal(next(tableu8Symb), nil) then -- Если талица пуста, то
+        sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Нельзя сохранять пустой список!", -1)
+        table.insert(Ini.Symbols, '-')
+        table.insert(tableu8ComboSymb, '-')
+        table.insert(tableu8Symb, '-')
+        ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
+    end
+    ImItemsIniSymb = imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb)
+
+    inicfg.save(Ini, "DepChannels")
+end
+
 -- Стиль
 function Theme()
     imgui.SwitchContext()
@@ -592,76 +657,26 @@ styles = {
 
 imgui.OnInitialize(function()
     Theme()
-    
     font_widget = imgui.GetIO().Fonts:AddFontFromFileTTF(getFolderPath(0x14) .. '\\trebucbd.ttf', Ini.Settings.WidgetFontSize, nil, imgui.GetIO().Fonts:GetGlyphRangesCyrillic())
     imgui.Loaded = true
 end)
--- Выравнивание текста
-function imgui.CenterText(text)
+
+function imgui.CenterText(text) -- Выравнивание текста
     imgui.SetCursorPosX(imgui.GetWindowWidth()/2-imgui.CalcTextSize(text).x/2)
     imgui.Text(text)
 end
--- Подсказка
-function imgui.Hind(text)
+
+function imgui.Hind(text) -- Подсказка
     if imgui.IsItemHovered() then
         imgui.BeginTooltip()
         imgui.Text(text)
         imgui.EndTooltip()
     end
 end
--- Save Settings
-function Save()
-    Ini.Settings.Style = radiobuttonStyle[0]
-    Ini.Settings.Command = u8:decode(ffi.string(inputCommand))
-    Ini.Settings.Chat = checkboxChat[0] and true or false
-    Ini.Settings.LineBreak = checkboxline[0] and true or false
-    Ini.Settings.Widget = checkboxWidg[0] and true or false
-    Ini.Settings.WidgetTransparency = widgetTransparency[0]
-    Ini.Settings.WidgetFontSize = widgetFontSize[0]
-    Ini.CustomStyleBg.r, Ini.CustomStyleBg.g, Ini.CustomStyleBg.b = colorEditStyleBg[0], colorEditStyleBg[1], colorEditStyleBg[2]
-    Ini.CustomStyleButton.r, Ini.CustomStyleButton.g, Ini.CustomStyleButton.b = colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2]
-    Ini.CustomStyleElments.r, Ini.CustomStyleElments.g, Ini.CustomStyleElments.b = colorEditStyleElments[0], colorEditStyleElments[1], colorEditStyleElments[2]
-    for value, _ in pairs(Ini.Channels) do -- сохранение списка тегов в Combo и Ini
-        Ini.Channels[value] = nil
-        tableu8Combo[value] = nil
-    end
-    for _, value in ipairs(tableu8) do
-        table.insert(Ini.Channels, u8:decode(ffi.string(value)))
-        table.insert(tableu8Combo, value)
-    end
-    if rawequal(next(tableu8), nil) then -- Если талица пуста, то
-        sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Нельзя сохранять пустой список!", -1)
-        table.insert(Ini.Channels, u8'Всем')
-        table.insert(tableu8Combo, u8'Всем')
-        table.insert(tableu8, u8'Всем')
-        ImItems = imgui.new['const char*'][#tableu8](tableu8)
-    end
-    ImItemsIni = imgui.new['const char*'][#tableu8Combo](tableu8Combo)
-    sampRegisterChatCommand(Ini.Settings.Command, function() MainMenu[0] = not MainMenu[0] end) -- регестрация новой команды заданной в input
-     -- сохранения списка текста между
-    for value, _ in pairs(Ini.Symbols) do -- сохранение списка текста между тегов в Combo и Ini
-        Ini.Symbols[value] = nil
-        tableu8ComboSymb[value] = nil
-    end
-    for _, value in ipairs(tableu8Symb) do
-        table.insert(Ini.Symbols, u8:decode(ffi.string(value)))
-        table.insert(tableu8ComboSymb, value)
-    end
-    if rawequal(next(tableu8Symb), nil) then -- Если талица пуста, то
-        sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Нельзя сохранять пустой список!", -1)
-        table.insert(Ini.Symbols, '-')
-        table.insert(tableu8ComboSymb, '-')
-        table.insert(tableu8Symb, '-')
-        ImItemsSymb = imgui.new['const char*'][#tableu8Symb](tableu8Symb)
-    end
-    ImItemsIniSymb = imgui.new['const char*'][#tableu8ComboSymb](tableu8ComboSymb)
 
-    inicfg.save(Ini, "DepChannels")
-end
--- тумблер
 LastActiveTime = {}
 LastActive = {}
-function imgui.ToggleButton(label, bool, distance)
+function imgui.ToggleButton(label, bool, distance) -- The basis is taken from https://github.com/AnWuPP/mimgui-addons
     local rBool = false
     
     distance = distance or 170 -- если параметр дистанции не задан, то он равен 170
