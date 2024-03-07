@@ -115,9 +115,9 @@ local checkboxAlternativeFilling =      imgui.new.bool(Ini.Settings.AlternativeF
 
 local radiobuttonStyle =                imgui.new.int(Ini.Settings.Style) -- выбор стиля
 local selectedChannel =                 imgui.new.int(0) -- выбранный элемент таблицы тегов
-local selectedSymbol =                  imgui.new.int(0) -- выбранный элемент таблицы текста между тегов
+local selectedWave =                    imgui.new.int(0) -- выбранный элемент таблицы текста между тегов
 local selectedComboTag1 =               imgui.new.int(Ini.Settings.lastChannel1) -- выбранный первый тег в combo
-local selectedComboSymbol =             imgui.new.int(Ini.Settings.lastSymbol) -- выбранный первый текст между в combo
+local selectedComboWave =               imgui.new.int(Ini.Settings.lastSymbol) -- выбранный первый текст между в combo
 local selectedComboTag2 =               imgui.new.int(Ini.Settings.lastChannel2) -- выбранный второй тег в combo
 
 local colorEditStyleBg =                imgui.new.float[3](Ini.CustomStyleBg.r, Ini.CustomStyleBg.g, Ini.CustomStyleBg.b) -- выбор цвета фона окна (кастомная тема)
@@ -279,10 +279,11 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.PushStyleColor(imgui.Col.HeaderHovered, imgui.ImVec4(1, 0, 0, 0.431))
         imgui.PushStyleColor(imgui.Col.HeaderActive, imgui.ImVec4(1, 0, 0, 0.8))
 
-        if imgui.ListBoxStr_arr('##list', selectedSymbol, ListWaves, #tableu8ListWaves) then -- listbox
-            table.remove(tableu8ListWaves, selectedSymbol[0] + 1)
+        if imgui.ListBoxStr_arr('##list', selectedWave, ListWaves, #tableu8ListWaves) then -- listbox
+            table.remove(tableu8ListWaves, selectedWave[0] + 1)
             ListWaves = imgui.new['const char*'][#tableu8ListWaves](tableu8ListWaves)
         end
+
         imgui.PopStyleColor(2)
         if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
         imgui.Hind(u8'Нажмите для удаления.')
@@ -391,8 +392,8 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.Text(u8'Волна:')
     imgui.SameLine()
     imgui.SetCursorPosX(imgui.GetWindowWidth() - 100)
-    if imgui.Combo('##symbolcombo', selectedComboSymbol, tableu8ModifiedListWaves, false) then
-        Ini.Settings.lastSymbol = selectedComboSymbol[0]
+    if imgui.Combo('##symbolcombo', selectedComboWave, tableu8ModifiedListWaves, false) then
+        Ini.Settings.lastSymbol = selectedComboWave[0]
     end
 
     imgui.Text(u8'Второй тег:')
@@ -451,8 +452,8 @@ imgui.OnFrame(function() return Ini.Settings.Widget and sampIsChatInputActive() 
         imgui.Hind(u8'Первый тег')
 
         imgui.SameLine()
-        if imgui.Combo('##symbolcombo', selectedComboSymbol, tableu8ModifiedListWaves, true) then
-            Ini.Settings.lastSymbol = selectedComboSymbol[0]
+        if imgui.Combo('##symbolcombo', selectedComboWave, tableu8ModifiedListWaves, true) then
+            Ini.Settings.lastSymbol = selectedComboWave[0]
         end
         imgui.Hind(u8'Волна')
 
@@ -622,6 +623,14 @@ function Save() -- Save Settings
         ListWaves = imgui.new['const char*'][#tableu8ListWaves](tableu8ListWaves)
     end
     ModifiedListWaves = imgui.new['const char*'][#tableu8ModifiedListWaves](tableu8ModifiedListWaves)
+    
+    Ini.Settings.lastChannel1 = 1
+    Ini.Settings.lastSymbol = 1
+    Ini.Settings.lastChannel2 = 1
+
+    selectedComboTag1[0] = Ini.Settings.lastChannel1
+    selectedComboWave[0] = Ini.Settings.lastSymbol
+    selectedComboTag2[0] = Ini.Settings.lastChannel2
 
     inicfg.save(Ini, "DepChannels")
 end
@@ -665,8 +674,7 @@ styles = {
             colors[clr.ButtonActive] =      imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
             colors[clr.HeaderHovered] =     imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.8)
             colors[clr.HeaderActive] =      imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
-            colors[clr.SliderGrab] =        imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.5)
-            colors[clr.SliderGrabActive] =  imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 1)
+            colors[clr.CheckMark] =         imgui.ImVec4(StyleColor.x, StyleColor.y, StyleColor.z, 0.588)
         end
     },
     [1] = {
@@ -690,8 +698,7 @@ styles = {
             colors[clr.Button] =            imgui.ImVec4(colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2], 1)
             colors[clr.ButtonHovered] =     imgui.ImVec4(colorEditStyleButton[0] + 0.102, colorEditStyleButton[1] + 0.204, colorEditStyleButton[2] + 0.177, 1)
             colors[clr.ButtonActive] =      imgui.ImVec4(colorEditStyleButton[0] + 0.102, colorEditStyleButton[1] + 0.349, colorEditStyleButton[2] + 0.393, 1)
-            colors[clr.SliderGrab] =        imgui.ImVec4(colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2], 0.5)
-            colors[clr.SliderGrabActive] =  imgui.ImVec4(colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2], 1)
+            colors[clr.CheckMark] =         imgui.ImVec4(colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2], 1)
         end
     }
 }
