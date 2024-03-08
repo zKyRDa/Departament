@@ -49,6 +49,7 @@ local Ini = inicfg.load({
         PosX = 0,
         PosY = 0,
         Widget = true,
+        NotHideWidget = false,
         WidgetPosX = 0,
         WidgetPosY = 0,
         WidgetTransparency = 1.0,
@@ -111,6 +112,7 @@ local checkboxEnab =                    imgui.new.bool(Ini.Settings.Enable) -- в
 local checkboxChat =                    imgui.new.bool(Ini.Settings.Chat) -- чекбокс включения кнопки 'Ввести в чат'
 local checkboxline =                    imgui.new.bool(Ini.Settings.LineBreak) -- чекбокс включения перенос строки
 local checkboxWidg =                    imgui.new.bool(Ini.Settings.Widget) -- вкл виджет
+local checkboxNotHideWidget =           imgui.new.bool(Ini.Settings.NotHideWidget) -- не скрывать виджет
 local checkboxAlternativeFilling =      imgui.new.bool(Ini.Settings.AlternativeFilling) -- вкл виджет
 
 local radiobuttonStyle =                imgui.new.int(Ini.Settings.Style) -- выбор стиля
@@ -184,20 +186,25 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.Separator()
         imgui.ToggleButton(u8'Виджет', checkboxWidg)
         imgui.Hind(u8'При открытии чата, включает виджет где виден канал, к которому подключены.')
-
+        
         if checkboxWidg[0] then -- если виджет включен
+            imgui.ToggleButton(u8'Не скрывать виджет', checkboxNotHideWidget)
+            imgui.Hind(u8'Виджет будет видет всегда.')
+
             imgui.PushItemWidth(88)
 
             imgui.Text(u8'Размер текста:')
             imgui.SameLine()
             imgui.SetCursorPosX(132)
             imgui.DragFloat("##widgetFontSize", widgetFontSize, 0.05, 0, 100, "%.3f", 1)
+            imgui.Hind(u8'Изменяет размер текста виджета.')
             if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
             if imgui.IsItemActive() then imgui.SetMouseCursor(4) end -- resize EW
             
             imgui.Text(u8'Прозрачность окна:')
             imgui.SameLine()
             imgui.DragFloat("##widgetTransparency", widgetTransparency, 0.005, 0, 1, "%.3f", 1)
+            imgui.Hind(u8'Изменяет прозрачность окна виджета.')
             if imgui.IsItemHovered() then imgui.SetMouseCursor(7) end -- hand
             if imgui.IsItemActive() then imgui.SetMouseCursor(4) end -- resize EW
         
@@ -219,6 +226,7 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.PushItemWidth(107)
         imgui.InputTextWithHint('', u8'Новый тег', inputChannels, 64)
         imgui.PopItemWidth()
+
         imgui.SameLine()
         if imgui.Button(u8'Добавить') then -- добавить новый тег
             local v
@@ -386,20 +394,20 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.Text(u8'Первый тег:')
     imgui.SameLine()
     imgui.SetCursorPosX(100)
-    if imgui.Combo('##tag1', selectedComboTag1, tableu8ModifiedListTags, false) then
+    if imgui.DepCombo('##tag1', selectedComboTag1, tableu8ModifiedListTags, false) then
         Ini.Settings.lastChannel1 = selectedComboTag1[0]
     end
     imgui.Text(u8'Волна:')
     imgui.SameLine()
     imgui.SetCursorPosX(imgui.GetWindowWidth() - 100)
-    if imgui.Combo('##symbolcombo', selectedComboWave, tableu8ModifiedListWaves, false) then
+    if imgui.DepCombo('##symbolcombo', selectedComboWave, tableu8ModifiedListWaves, false) then
         Ini.Settings.lastSymbol = selectedComboWave[0]
     end
 
     imgui.Text(u8'Второй тег:')
     imgui.SameLine()
     imgui.SetCursorPosX(100)
-    if imgui.Combo('##tag2', selectedComboTag2, tableu8ModifiedListTags, false) then
+    if imgui.DepCombo('##tag2', selectedComboTag2, tableu8ModifiedListTags, false) then
         Ini.Settings.lastChannel2 = selectedComboTag2[0]
     end
     
@@ -423,7 +431,7 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.End()
 end)
 
-imgui.OnFrame(function() return Ini.Settings.Widget and sampIsChatInputActive() or SettingsMenu[0] end, function() -- виджет
+imgui.OnFrame(function() return Ini.Settings.Widget and checkboxNotHideWidget[0] or sampIsChatInputActive() or SettingsMenu[0] end, function() -- виджет
     local colors = imgui.GetStyle().Colors
     imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(colors[imgui.Col.WindowBg].x, colors[imgui.Col.WindowBg].y, colors[imgui.Col.WindowBg].z, widgetTransparency[0]))
     imgui.PushStyleColor(imgui.Col.Border, imgui.ImVec4(0, 0, 0, 0))
@@ -446,19 +454,19 @@ imgui.OnFrame(function() return Ini.Settings.Widget and sampIsChatInputActive() 
 
     imgui.PushFont(font_widget)
     if checkboxAlternativeFilling[0] then
-        if imgui.Combo('##tag1', selectedComboTag1, tableu8ModifiedListTags, true) then
+        if imgui.DepCombo('##tag1', selectedComboTag1, tableu8ModifiedListTags, true) then
             Ini.Settings.lastChannel1 = selectedComboTag1[0]
         end
         imgui.Hind(u8'Первый тег')
 
         imgui.SameLine()
-        if imgui.Combo('##symbolcombo', selectedComboWave, tableu8ModifiedListWaves, true) then
+        if imgui.DepCombo('##symbolcombo', selectedComboWave, tableu8ModifiedListWaves, true) then
             Ini.Settings.lastSymbol = selectedComboWave[0]
         end
         imgui.Hind(u8'Волна')
 
         imgui.SameLine()
-        if imgui.Combo('##tag2', selectedComboTag2, tableu8ModifiedListTags, true) then
+        if imgui.DepCombo('##tag2', selectedComboTag2, tableu8ModifiedListTags, true) then
             Ini.Settings.lastChannel2 = selectedComboTag2[0]
         end
         imgui.Hind(u8'Второй тег')
@@ -572,10 +580,11 @@ function Save() -- Save Settings
     Ini.Settings.Command = u8:decode(ffi.string(inputCommand))
     sampRegisterChatCommand(Ini.Settings.Command, function() MainMenu[0] = not MainMenu[0] end) -- регистрация новой команды заданной в input
 
-    Ini.Settings.Chat = checkboxChat[0] and true or false
-    Ini.Settings.LineBreak = checkboxline[0] and true or false
+    Ini.Settings.Chat = checkboxChat[0]
+    Ini.Settings.LineBreak = checkboxline[0]
     
-    Ini.Settings.Widget = checkboxWidg[0] and true or false
+    Ini.Settings.Widget = checkboxWidg[0]
+    Ini.Settings.NotHideWidget = checkboxNotHideWidget[0]
     Ini.Settings.WidgetTransparency = widgetTransparency[0]
     Ini.Settings.WidgetFontSize = tonumber(string.format('%.3f', widgetFontSize[0]))
     Ini.Settings.AlternativeFilling = checkboxAlternativeFilling[0]
@@ -585,10 +594,19 @@ function Save() -- Save Settings
     Ini.CustomStyleButton.r, Ini.CustomStyleButton.g, Ini.CustomStyleButton.b = colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2]
     Ini.CustomStyleElments.r, Ini.CustomStyleElments.g, Ini.CustomStyleElments.b = colorEditStyleElments[0], colorEditStyleElments[1], colorEditStyleElments[2]
 
-    for value, _ in pairs(Ini.Channels) do -- сохранение списка тегов в Combo и Ini
-        Ini.Channels[value] = nil
-        tableu8ModifiedListTags[value] = nil
+    if #Ini.Channels ~= #tableu8ListTags or #Ini.Symbols ~= #tableu8ListWaves then
+        Ini.Settings.lastChannel1 = 1
+        Ini.Settings.lastSymbol = 1
+        Ini.Settings.lastChannel2 = 1
+        
+        selectedComboTag1[0] = Ini.Settings.lastChannel1
+        selectedComboWave[0] = Ini.Settings.lastSymbol
+        selectedComboTag2[0] = Ini.Settings.lastChannel2
     end
+
+    -- List Saves
+    Ini.Channels = {}
+    tableu8ModifiedListTags = {}
     
     for _, value in ipairs(tableu8ListTags) do
         table.insert(Ini.Channels, u8:decode(ffi.string(value)))
@@ -602,13 +620,10 @@ function Save() -- Save Settings
         table.insert(tableu8ListTags, u8'Всем')
         ListTags = imgui.new['const char*'][#tableu8ListTags](tableu8ListTags)
     end
-    ModifiedListTags = imgui.new['const char*'][#tableu8ModifiedListTags](tableu8ModifiedListTags)
 
-     -- сохранения списка текста между
-    for value, _ in pairs(Ini.Symbols) do -- сохранение списка текста между тегов в Combo и Ini
-        Ini.Symbols[value] = nil
-        tableu8ModifiedListWaves[value] = nil
-    end
+
+    Ini.Symbols = {}
+    tableu8ModifiedListWaves = {}
 
     for _, value in ipairs(tableu8ListWaves) do
         table.insert(Ini.Symbols, u8:decode(ffi.string(value)))
@@ -622,15 +637,6 @@ function Save() -- Save Settings
         table.insert(tableu8ListWaves, '-')
         ListWaves = imgui.new['const char*'][#tableu8ListWaves](tableu8ListWaves)
     end
-    ModifiedListWaves = imgui.new['const char*'][#tableu8ModifiedListWaves](tableu8ModifiedListWaves)
-    
-    Ini.Settings.lastChannel1 = 1
-    Ini.Settings.lastSymbol = 1
-    Ini.Settings.lastChannel2 = 1
-
-    selectedComboTag1[0] = Ini.Settings.lastChannel1
-    selectedComboWave[0] = Ini.Settings.lastSymbol
-    selectedComboTag2[0] = Ini.Settings.lastChannel2
 
     inicfg.save(Ini, "DepChannels")
 end
@@ -778,7 +784,7 @@ function imgui.ToggleButton(label, bool, distance) -- The basis is taken from ht
 	return rBool
 end
 
-function imgui.Combo(label, v, array, widget)
+function imgui.DepCombo(label, v, array, widget)
     local rBool = false
 
     function max(list) -- return width widest line
