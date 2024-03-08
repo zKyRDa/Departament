@@ -529,8 +529,8 @@ function sampev.onSendCommand(text)
             secondMessage = string.match(string.sub(dtext, #firstMessage+2, 119), "(.*)") -- начать текст с момента переноса
 
             -- formation
-            firstMessage = string.format('/d %s %s', GetCompletedForm(), firstMessage)
-            secondMessage = string.format('/d %s %s', GetCompletedForm(), secondMessage)
+            firstMessage = string.format('/d %s %s ...', GetCompletedForm(), firstMessage)
+            secondMessage = string.format('/d %s ... %s', GetCompletedForm(), secondMessage)
 
             -- Send
             lua_thread.create(function()
