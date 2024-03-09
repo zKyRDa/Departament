@@ -396,12 +396,14 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.SetCursorPosX(100)
     if imgui.DepCombo('##tag1', selectedComboTag1, tableu8ModifiedListTags, false) then
         Ini.Settings.lastChannel1 = selectedComboTag1[0]
+        inicfg.save(Ini, "DepChannels")
     end
     imgui.Text(u8'Волна:')
     imgui.SameLine()
     imgui.SetCursorPosX(imgui.GetWindowWidth() - 100)
     if imgui.DepCombo('##Wavecombo', selectedComboWave, tableu8ModifiedListWaves, false) then
         Ini.Settings.lastWave = selectedComboWave[0]
+        inicfg.save(Ini, "DepChannels")
     end
 
     imgui.Text(u8'Второй тег:')
@@ -409,6 +411,7 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.SetCursorPosX(100)
     if imgui.DepCombo('##tag2', selectedComboTag2, tableu8ModifiedListTags, false) then
         Ini.Settings.lastChannel2 = selectedComboTag2[0]
+        inicfg.save(Ini, "DepChannels")
     end
     
 
@@ -457,18 +460,21 @@ imgui.OnFrame(function() return Ini.Settings.Widget and isSampAvailable() and ch
     if checkboxAlternativeFilling[0] then
         if imgui.DepCombo('##tag1', selectedComboTag1, tableu8ModifiedListTags, true) then
             Ini.Settings.lastChannel1 = selectedComboTag1[0]
+            inicfg.save(Ini, "DepChannels")
         end
         imgui.Hind(u8'Первый тег')
 
         imgui.SameLine()
         if imgui.DepCombo('##Wavecombo', selectedComboWave, tableu8ModifiedListWaves, true) then
             Ini.Settings.lastWave = selectedComboWave[0]
+            inicfg.save(Ini, "DepChannels")
         end
         imgui.Hind(u8'Волна')
 
         imgui.SameLine()
         if imgui.DepCombo('##tag2', selectedComboTag2, tableu8ModifiedListTags, true) then
             Ini.Settings.lastChannel2 = selectedComboTag2[0]
+            inicfg.save(Ini, "DepChannels")
         end
         imgui.Hind(u8'Второй тег')
 
