@@ -1,7 +1,7 @@
 script_name('Departament')
 script_author('KyRDa')
 script_description('/depset')
-script_version('3.0.1')
+script_version('3.0.2')
 
 require('lib.moonloader')
 local ffi = require("ffi")
@@ -44,7 +44,7 @@ local Ini = inicfg.load({
         Command = 'dep',
         Form = '[#1] $ [#2]:',
         lastChannel1 = 1,
-        lastSymbol = 1,
+        lastWave = 1,
         lastChannel2 = 1,
         PosX = 0,
         PosY = 0,
@@ -61,7 +61,7 @@ local Ini = inicfg.load({
     Channels = {
         'Всем'
     },
-    Symbols = { -- Symbols - символы, у меня это текст между тегами. Раньше использовал только один символ между тегами '-', потом переделал, а имя не менял
+    Waves = { -- Waves - символы, у меня это текст между тегами. Раньше использовал только один символ между тегами '-', потом переделал, а имя не менял
         '-'
     },
     CustomStyleBg = {
@@ -90,15 +90,15 @@ inicfg.save(Ini, "DepChannels")
 local tableu8ListTags = {} -- загрузка таблиц тегов
 local tableu8ModifiedListTags = {}
 for _, value in ipairs(Ini.Channels) do
-    table.insert(tableu8ListTags, u8(value))
-    table.insert(tableu8ModifiedListTags, u8(value))
+    table.insert(tableu8ListTags, u8:encode(value))
+    table.insert(tableu8ModifiedListTags, u8:encode(value))
 end
 
 local tableu8ListWaves = {} -- загрузка таблиц текста между тегов
 local tableu8ModifiedListWaves = {}
-for _, value in ipairs(Ini.Symbols) do
-    table.insert(tableu8ListWaves, u8(value))
-    table.insert(tableu8ModifiedListWaves, u8(value))
+for _, value in ipairs(Ini.Waves) do
+    table.insert(tableu8ListWaves, u8:encode(value))
+    table.insert(tableu8ModifiedListWaves, u8:encode(value))
 end
 
 local MainMenu, SettingsMenu =  imgui.new.bool(), imgui.new.bool() -- окона
@@ -106,7 +106,7 @@ local MainMenu, SettingsMenu =  imgui.new.bool(), imgui.new.bool() -- окона
 local inputCommand =                    imgui.new.char[64](u8:encode(Ini.Settings.Command)) -- изменение команды активации
 local inputForm =                       imgui.new.char[64](u8:encode(Ini.Settings.Form)) -- форма (конструкция) постановки
 local inputChannels =                   imgui.new.char[64]() -- добавить в тег в список
-local inputSymbol =                     imgui.new.char[64]() -- добавить в символ в список
+local inputWave =                       imgui.new.char[64]() -- добавить в символ в список
 
 local checkboxEnab =                    imgui.new.bool(Ini.Settings.Enable) -- включить подмену
 local checkboxChat =                    imgui.new.bool(Ini.Settings.Chat) -- чекбокс включения кнопки 'Ввести в чат'
@@ -119,7 +119,7 @@ local radiobuttonStyle =                imgui.new.int(Ini.Settings.Style) -- выб
 local selectedChannel =                 imgui.new.int(0) -- выбранный элемент таблицы тегов
 local selectedWave =                    imgui.new.int(0) -- выбранный элемент таблицы текста между тегов
 local selectedComboTag1 =               imgui.new.int(Ini.Settings.lastChannel1) -- выбранный первый тег в combo
-local selectedComboWave =               imgui.new.int(Ini.Settings.lastSymbol) -- выбранный первый текст между в combo
+local selectedComboWave =               imgui.new.int(Ini.Settings.lastWave) -- выбранный первый текст между в combo
 local selectedComboTag2 =               imgui.new.int(Ini.Settings.lastChannel2) -- выбранный второй тег в combo
 
 local colorEditStyleBg =                imgui.new.float[3](Ini.CustomStyleBg.r, Ini.CustomStyleBg.g, Ini.CustomStyleBg.b) -- выбор цвета фона окна (кастомная тема)
@@ -262,22 +262,22 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
     end
 
     imgui.SameLine()
-    if imgui.BeginChild('Symbol', imgui.ImVec2(194, 178), true) then
+    if imgui.BeginChild('Wave', imgui.ImVec2(194, 178), true) then
         imgui.PushItemWidth(107)
-        imgui.InputTextWithHint('', u8'Текст между', inputSymbol, 64)
+        imgui.InputTextWithHint('', u8'Текст между', inputWave, 64)
         imgui.PopItemWidth()
         imgui.SameLine()
         if imgui.Button(u8'Добавить') then -- добавить новый тег
             local v
             for _, value in ipairs(tableu8ListWaves) do -- защита от повтора тегов
-                if value == ffi.string(inputSymbol) then
+                if value == ffi.string(inputWave) then
                     sampAddChatMessage('{cb2821}[Departament]:{FFFFFF} Элемент в списке с таким названием уже существует!', -1)
                     v = value
                     break
                 end
             end
-            if v ~= ffi.string(inputSymbol) then
-                table.insert(tableu8ListWaves, ffi.string(inputSymbol))
+            if v ~= ffi.string(inputWave) then
+                table.insert(tableu8ListWaves, ffi.string(inputWave))
                 ListWaves = imgui.new['const char*'][#tableu8ListWaves](tableu8ListWaves)
             end
         end
@@ -400,8 +400,8 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.Text(u8'Волна:')
     imgui.SameLine()
     imgui.SetCursorPosX(imgui.GetWindowWidth() - 100)
-    if imgui.DepCombo('##symbolcombo', selectedComboWave, tableu8ModifiedListWaves, false) then
-        Ini.Settings.lastSymbol = selectedComboWave[0]
+    if imgui.DepCombo('##Wavecombo', selectedComboWave, tableu8ModifiedListWaves, false) then
+        Ini.Settings.lastWave = selectedComboWave[0]
     end
 
     imgui.Text(u8'Второй тег:')
@@ -431,7 +431,8 @@ imgui.OnFrame(function() return MainMenu[0] and not isPauseMenuActive() and not 
     imgui.End()
 end)
 
-imgui.OnFrame(function() return Ini.Settings.Widget and checkboxNotHideWidget[0] or sampIsChatInputActive() or SettingsMenu[0] end, function() -- виджет
+imgui.OnFrame(function() return Ini.Settings.Widget and isSampAvailable() and checkboxNotHideWidget[0]  or sampIsChatInputActive() or SettingsMenu[0] end, function() -- виджет
+    -- isSampAvailable() в предыдущей строке - исправление краша, связанного с параметром "Не скрывать виджет"
     local colors = imgui.GetStyle().Colors
     imgui.PushStyleColor(imgui.Col.WindowBg, imgui.ImVec4(colors[imgui.Col.WindowBg].x, colors[imgui.Col.WindowBg].y, colors[imgui.Col.WindowBg].z, widgetTransparency[0]))
     imgui.PushStyleColor(imgui.Col.Border, imgui.ImVec4(0, 0, 0, 0))
@@ -460,8 +461,8 @@ imgui.OnFrame(function() return Ini.Settings.Widget and checkboxNotHideWidget[0]
         imgui.Hind(u8'Первый тег')
 
         imgui.SameLine()
-        if imgui.DepCombo('##symbolcombo', selectedComboWave, tableu8ModifiedListWaves, true) then
-            Ini.Settings.lastSymbol = selectedComboWave[0]
+        if imgui.DepCombo('##Wavecombo', selectedComboWave, tableu8ModifiedListWaves, true) then
+            Ini.Settings.lastWave = selectedComboWave[0]
         end
         imgui.Hind(u8'Волна')
 
@@ -496,7 +497,7 @@ end).HideCursor = true
 
 function GetCompletedForm()
     local form = string.gsub(Ini.Settings.Form, '#1', Ini.Channels[Ini.Settings.lastChannel1])
-    form = string.gsub(form, '%$', Ini.Symbols[Ini.Settings.lastSymbol])
+    form = string.gsub(form, '%$', Ini.Waves[Ini.Settings.lastWave])
     form = string.gsub(form, '#2', Ini.Channels[Ini.Settings.lastChannel2])
 
     return form
@@ -594,13 +595,13 @@ function Save() -- Save Settings
     Ini.CustomStyleButton.r, Ini.CustomStyleButton.g, Ini.CustomStyleButton.b = colorEditStyleButton[0], colorEditStyleButton[1], colorEditStyleButton[2]
     Ini.CustomStyleElments.r, Ini.CustomStyleElments.g, Ini.CustomStyleElments.b = colorEditStyleElments[0], colorEditStyleElments[1], colorEditStyleElments[2]
 
-    if #Ini.Channels ~= #tableu8ListTags or #Ini.Symbols ~= #tableu8ListWaves then
+    if #Ini.Channels ~= #tableu8ListTags or #Ini.Waves ~= #tableu8ListWaves then
         Ini.Settings.lastChannel1 = 1
-        Ini.Settings.lastSymbol = 1
+        Ini.Settings.lastWave = 1
         Ini.Settings.lastChannel2 = 1
         
         selectedComboTag1[0] = Ini.Settings.lastChannel1
-        selectedComboWave[0] = Ini.Settings.lastSymbol
+        selectedComboWave[0] = Ini.Settings.lastWave
         selectedComboTag2[0] = Ini.Settings.lastChannel2
     end
 
@@ -622,17 +623,17 @@ function Save() -- Save Settings
     end
 
 
-    Ini.Symbols = {}
+    Ini.Waves = {}
     tableu8ModifiedListWaves = {}
 
     for _, value in ipairs(tableu8ListWaves) do
-        table.insert(Ini.Symbols, u8:decode(ffi.string(value)))
+        table.insert(Ini.Waves, u8:decode(ffi.string(value)))
         table.insert(tableu8ModifiedListWaves, value)
     end
 
     if rawequal(next(tableu8ListWaves), nil) then -- Если талица пуста, то
         sampAddChatMessage("{cb2821}[Departament]:{FFFFFF} Нельзя сохранять пустой список!", -1)
-        table.insert(Ini.Symbols, '-')
+        table.insert(Ini.Waves, '-')
         table.insert(tableu8ModifiedListWaves, '-')
         table.insert(tableu8ListWaves, '-')
         ListWaves = imgui.new['const char*'][#tableu8ListWaves](tableu8ListWaves)
