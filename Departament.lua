@@ -56,6 +56,7 @@ local Ini = inicfg.load({
         WidgetFontSize = 13.5,
         AlternativeFilling = false,
         Style = 0, -- номер стиля, 0 - стандарт (фракционный), 1 - кастом
+        Multiconnection = false
     },
     Channels = {
         'Всем'
@@ -113,6 +114,9 @@ local checkboxline =                    imgui.new.bool(Ini.Settings.LineBreak) -
 local checkboxWidg =                    imgui.new.bool(Ini.Settings.Widget) -- вкл виджет
 local checkboxNotHideWidget =           imgui.new.bool(Ini.Settings.NotHideWidget) -- не скрывать виджет
 local checkboxAlternativeFilling =      imgui.new.bool(Ini.Settings.AlternativeFilling) -- вкл виджет
+local checkboxMulticonnection =         imgui.new.bool(Ini.Settings.Multiconnection)
+
+local Multiconnection = {}
 
 local radiobuttonStyle =                imgui.new.int(Ini.Settings.Style) -- выбор стиля
 local selectedChannel =                 imgui.new.int(0) -- выбранный элемент таблицы тегов
@@ -216,6 +220,9 @@ imgui.OnFrame(function() return SettingsMenu[0] and not isPauseMenuActive() and 
         imgui.Separator()
         imgui.ToggleButton(u8'Перенос сообщения /d', checkboxline)
         imgui.Hind(u8"При включении этого параметра все сообщения /d будут обрабатываться.\nКогда вы напишите сообщение, непомещающаеся в одно строку, скрипт перенесёт его.")
+        
+        imgui.ToggleButton(u8'Мультиподключение', checkboxMulticonnection)
+        imgui.Hind(u8"При включении этого параметра появляется возможность обращаться сразу к нескольким тегам,\nПример: [ЛСПД] - [МЮ/МЗ/МО]")
 
         imgui.EndChild()
     end
@@ -477,6 +484,17 @@ imgui.OnFrame(function() return Ini.Settings.Widget and isSampAvailable() and ch
         end
         imgui.Hind(u8'Второй тег')
 
+        if checkboxMulticonnection[0] then
+            if imgui.Button("+", imgui.ImVec2(-1, -1)) then
+                table.insert(Multiconnection, imgui.new.int(0))
+            end
+
+            for i, v in ipairs(Multiconnection) do
+                imgui.DepCombo('##tagMult'..i, v, tableu8ModifiedListTags, true)
+            end
+        end
+
+
         imgui.SameLine()
         if checkboxEnab[0] and not checkboxChat[0] then
             imgui.TextColored(imgui.ImVec4(0.0, 1.0, 0.0, 1.0), u8'Включено')
@@ -503,7 +521,18 @@ end).HideCursor = true
 function GetCompletedForm()
     local form = string.gsub(Ini.Settings.Form, '#1', Ini.Channels[Ini.Settings.lastChannel1])
     form = string.gsub(form, '%$', Ini.Waves[Ini.Settings.lastWave])
-    form = string.gsub(form, '#2', Ini.Channels[Ini.Settings.lastChannel2])
+    
+    if checkboxMulticonnection[0] then
+        local tags = {Ini.Channels[Ini.Settings.lastChannel2]}
+
+        for i, v in ipairs(Multiconnection) do
+            table.insert(Ini.Channels[v])
+        end
+
+        form = string.gsub(form, '#2', table.concat(tags, "/"))
+    else
+        form = string.gsub(form, '#2', Ini.Channels[Ini.Settings.lastChannel2])
+    end
 
     return form
 end
