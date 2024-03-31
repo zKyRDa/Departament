@@ -55,7 +55,6 @@ local Ini = inicfg.load({
         WidgetTransparency = 1.0,
         WidgetFontSize = 13.5,
         AlternativeFilling = false,
-        MaxText = 80, -- максимальное количество символов в строчке /d для переноса
         Style = 0, -- номер стиля, 0 - стандарт (фракционный), 1 - кастом
     },
     Channels = {
@@ -510,48 +509,67 @@ function GetCompletedForm()
 end
 
 function sampev.onServerMessage(color, text) -- счётчик символов звания, ника и id для корректного переноса текста
-    if text:find('%[D%] (.+)% '..myname..'%[(%d+)%]:') then
-        local rank, id = text:match('%[D%] (.+)% '..myname..'%[(%d+)%]: ')
-        text = '[D] '..rank..' '..myname..'['..id..']: '
-        Ini.Settings.MaxText = 119 - #text
-        inicfg.save(Ini, "DepChannels")
+    if Ini.Settings.LineBreak and text:find('%[D%] (.+)% '..myname..'%[(%d+)%]:') then
+        local msg = select(2, text:find('%[D%] (.+)% '..myname..'%[(%d+)%]: '.. GetCompletedForm()))
+
+        if select(1, sampGetChatString(99)) ~= text then
+            LineBreaker.From_Scratch(msg)
+        else
+            LineBreaker.Second_Line_Only(msg)
+        end
     end
 end
 
-local firstMessage -- переменные для переноса
-local secondMessage
+
 local Message -- последняя отправленная строка в /d
 function sampev.onSendCommand(text)
-    if text:find('^/d%s+.+%s*') and not checkboxChat[0] and checkboxEnab[0] and not text:find(GetCompletedForm()) and Message ~= text and firstMessage ~= text and secondMessage ~= text then
+    if text:find('^/d%s+.+%s*') and not checkboxChat[0] and checkboxEnab[0] and not text:find(GetCompletedForm()) and Message ~= text then
         local dtext = text:match('^/d%s+(.+)%s*')
         Message = string.format('/d %s %s', GetCompletedForm(), dtext)
-
-        if #Message:sub(3) > Ini.Settings.MaxText and Ini.Settings.LineBreak then -- перенос строки
-            firstMessage = string.match(dtext:sub(1, Ini.Settings.MaxText), "(.*) (.*)") -- первый (.*) - текст в первой строчке, второй - остаток текста 
-            
-            if firstMessage == nil then
-                return sampAddChatMessage('{cb2821}[Departament]:{FFFFFF} Перенос строки принимает только текст с пробелами. Выключить эту функцию можно в /depset', -1)
-            end
-
-            secondMessage = string.match(string.sub(dtext, #firstMessage+2, 119), "(.*)") -- начать текст с момента переноса
-
-            -- formation
-            firstMessage = string.format('/d %s %s ...', GetCompletedForm(), firstMessage)
-            secondMessage = string.format('/d %s ... %s', GetCompletedForm(), secondMessage)
-
-            -- Send
-            lua_thread.create(function()
-                sampSendChat(firstMessage)
-                wait(2000) -- 2 sec
-                sampSendChat(secondMessage)
-            end)
-        else
-            sampSendChat(Message)
-        end
-
+        sampSendChat(Message)
+        
+        LineBreaker.text = dtext
         return false
     end
 end
+
+LineBreaker = {text = nil}
+setmetatable(LineBreaker, {
+    __index = function(self, key)
+        if key == "From_Scratch" then
+            return function(displayed_text_finish)
+                local firstMessage = string.match(self.text:sub(1, 128 - displayed_text_finish), "(.*) (.*)") -- первый (.*) - текст в первой строчке, второй - остаток текста 
+                
+                if firstMessage == nil then
+                    return sampAddChatMessage('{cb2821}[Departament]:{FFFFFF} Перенос строки принимает только текст с пробелами. Выключить эту функцию можно в /depset', -1)
+                end
+    
+                local secondMessage = string.match(self.text:sub(#firstMessage+2, 128), "(.*)") -- начать текст с момента переноса
+    
+                -- formation
+                firstMessage = string.format('/d %s %s ...', GetCompletedForm(), firstMessage)
+                secondMessage = string.format('/d %s ... %s', GetCompletedForm(), secondMessage)
+    
+                -- Send
+                lua_thread.create(function()
+                    sampSendChat(firstMessage)
+                    wait(2000) -- 2 sec
+                    sampSendChat(secondMessage)
+                end)
+            end
+        elseif key == "Second_Line_Only" then
+            return function(displayed_text_finish)
+                local secondMessage = string.match(self.text:sub(128 - displayed_text_finish, 128), "(.*)") -- начать текст с момента переноса
+                secondMessage = string.format('/d %s ... %s', GetCompletedForm(), secondMessage)
+
+                lua_thread.create(function()
+                    wait(2000) -- 2 sec
+                    sampSendChat(secondMessage)
+                end)
+            end
+        end
+    end
+})
 
 function main()
     while not isSampAvailable() do wait(0) end
